@@ -1,0 +1,128 @@
+---
+import Section from "../components/common/Section.astro";
+import Layout from "../layouts/Layout.astro";
+---
+<Layout>
+  <Section class="my-16">
+    <h1 class="text-3xl font-bold mb-6">Contact & Support</h1>
+    <p class="mb-8">
+      Have a question or feedback? Feel free to reach out using the form below.
+    </p>
+
+    <form id="contact-form" class="max-w-2xl space-y-6">
+      <div id="form-message" class="hidden p-4 rounded-lg"></div>
+
+      <div>
+        <label for="name" class="block text-sm font-medium mb-2">Name</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      <div>
+        <label for="email" class="block text-sm font-medium mb-2">Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          required
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      <div>
+        <label for="subject" class="block text-sm font-medium mb-2">Subject</label>
+        <input
+          type="text"
+          id="subject"
+          name="subject"
+          required
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      <div>
+        <label for="message" class="block text-sm font-medium mb-2">Message</label>
+        <textarea
+          id="message"
+          name="message"
+          rows="6"
+          required
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        id="submit-btn"
+        class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Send Message
+      </button>
+    </form>
+
+    <script>
+
+type SendMailResponse = {
+  error?: string;
+  message?: string;
+};
+      const form = document.getElementById('contact-form') as HTMLFormElement;
+      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+      const formMessage = document.getElementById('form-message') as HTMLDivElement;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+        formMessage.classList.add('hidden');
+
+        const formData = {
+          name: (document.getElementById('name') as HTMLInputElement).value,
+          email: (document.getElementById('email') as HTMLInputElement).value,
+          subject: (document.getElementById('subject') as HTMLInputElement).value,
+          message: (document.getElementById('message') as HTMLTextAreaElement).value,
+        };
+
+        try {
+          const response = await fetch('/api/send-mail', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData),
+          });
+
+         const result: SendMailResponse = await response.json();
+
+          if (response.ok) {
+            formMessage.textContent = 'Message sent successfully! We\'ll get back to you soon.';
+            formMessage.className = 'p-4 rounded-lg bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+            form.reset();
+          } else {
+            throw new Error(result.error || 'Failed to send message');
+          }
+        } catch (error) {
+          formMessage.textContent = 'Failed to send message. Please try again later.';
+          formMessage.className = 'p-4 rounded-lg bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send Message';
+          formMessage.classList.remove('hidden');
+        }
+      });
+    </script>
+
+    <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
+      <h2 class="text-xl font-semibold mb-4">Other Ways to Connect</h2>
+      <p class="text-gray-600 dark:text-gray-400">
+        You can also find me on various platforms. Links are available in the footer.
+      </p>
+    </div>
+  </Section>
+</Layout>
