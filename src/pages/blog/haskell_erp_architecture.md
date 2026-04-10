@@ -9,12 +9,10 @@ timestamp: 2026-04-10T09:26:00+09:00
 filename: haskell_erp_architecture
 ---
 
-# Haskell ERP (IFRS) 開発ポリシー
-
-## この文書の目的
+## 目的
 
 IFRS 準拠の会計 ERP を Haskell で構築するにあたっての設計指針を示す。
-まず典型的なアンチパターンを提示し、その問題点を 58 項目に分解する。
+まず典型的なアンチパターンを提示し、その問題点を 69 項目に分解する。
 最後に、それらを反映した改善例を置く。
 
 ### 二つの原則
@@ -59,7 +57,8 @@ data User = User
   } deriving Show
 
 class Monad m => UserRepository m where
-  saveUser :: User -> m ()
+  saveUser   :: User -> m ()
+  deleteUser :: Int -> m ()   -- ★問題(#21): 物理削除。監査証跡が消える
 
 --------------------------------------------------------------------------------
 -- 2. Application Layer
@@ -72,15 +71,53 @@ data UserRequestDto = UserRequestDto
 
 class Monad m => UserUseCase m where
   registerUser :: UserRequestDto -> m ()
+  correctUserName :: Int -> String -> m ()   -- ユーザ名修正
+  searchUserByName :: String -> m [User]     -- ユーザ名検索
+  deactivateUser :: Int -> m ()              -- ユーザ無効化
 
 class Monad m => UserOutputPort m where
   handleOutput :: String -> m ()
 
-instance (UserRepository m, UserOutputPort m) => UserUseCase m where
+-- ★問題：findUser が IO 型クラスとして Domain に露出（項目 #47）
+class Monad m => UserFinder m where
+  findUser     :: Int -> m (Maybe User)
+  searchByName :: String -> m [User]
+
+instance (UserRepository m, UserOutputPort m, UserFinder m) => UserUseCase m where
   registerUser dto = do
     let newUser = User 1 (UserName $ dtoName dto) (UserEmail $ dtoEmail dto)
     saveUser newUser
     handleOutput $ "User: " ++ dtoName dto ++ " has been registered."
+
+  -- ★問題だらけのユーザ名修正
+  correctUserName uid newName = do
+    -- 問題(#2): バリデーションが後段。空文字でも UserName が作れる
+    -- 問題(#3): 状態がない。停止中ユーザの名前も変更できてしまう
+    -- 問題(#7): エラーが String。呼び出し元で分岐できない
+    -- 問題(#21): 上書き。訂正の事実が消える
+    -- 問題(#24): 履歴なし。誰が・いつ変えたか分からない
+    let updated = User uid (UserName newName) (UserEmail "unknown")
+    saveUser updated
+    handleOutput $ "User " ++ show uid ++ " name corrected to: " ++ newName
+
+  -- ★問題だらけのユーザ名検索
+  searchUserByName name = do
+    -- 問題(#59): Read モデルがない。Write 用エンティティをそのまま返す
+    -- 問題(#62): DTO がない。内部構造がそのまま外に漏れる
+    -- 問題(#63): Domain 型を Read に再利用。表示要件が Domain を汚す
+    -- 問題(#2):  入力バリデーションなし
+    users <- searchByName name
+    handleOutput $ "Found " ++ show (length users) ++ " users."
+    pure users
+
+  -- ★問題だらけのユーザ無効化
+  deactivateUser uid = do
+    -- 問題(#3):  状態がない。既に無効化済みでも再度無効化できる
+    -- 問題(#21): 物理削除。事実の記録が消える。監査不可
+    -- 問題(#24): 履歴なし。誰が・いつ・なぜ無効化したか分からない
+    -- 問題(#39): 復旧手段がない。削除は取り消せない
+    deleteUser uid
+    handleOutput $ "User " ++ show uid ++ " has been deactivated (deleted)."
 
 --------------------------------------------------------------------------------
 -- 3. Infrastructure Layer
@@ -88,6 +125,16 @@ instance (UserRepository m, UserOutputPort m) => UserUseCase m where
 
 instance UserRepository IO where
   saveUser user = putStrLn $ "[Infra] saved: " ++ show user
+  deleteUser uid = putStrLn $ "[Infra] DELETED user: " ++ show uid
+
+-- ★問題(#45): findUser も暗黙 DI。依存が増えるほど推論が不透明
+instance UserFinder IO where
+  findUser uid = do
+    putStrLn $ "[Infra] loading user: " ++ show uid
+    pure $ Just (User uid (UserName "Old Name") (UserEmail "old@example.com"))
+  searchByName name = do
+    putStrLn $ "[Infra] searching users by name: " ++ name
+    pure [User 1 (UserName name) (UserEmail "found@example.com")]
 
 --------------------------------------------------------------------------------
 -- 4. Adapter Layer
@@ -103,6 +150,27 @@ handleRegisterRequest params = do
     let dto = UserRequestDto (pName params) (pEmail params)
     registerUser dto
 
+-- ★ユーザ名修正コントローラ
+-- 問題(#50): Controller が生の ID/文字列をそのまま UseCase に渡す
+-- 問題(#9):  Int の uid は仕訳 ID と取り違えても型が通る
+-- 問題(#2):  バリデーションなし。空文字や制御文字もそのまま通過
+-- 問題(#62): 修正結果を返さない。Controller が出力を握ると肥大化する
+handleCorrectNameRequest :: (UserUseCase m) => Int -> String -> m ()
+handleCorrectNameRequest uid newName =
+    correctUserName uid newName
+
+-- ★ユーザ名検索コントローラ
+-- 問題(#59): Write 用 User をそのまま返す。Read モデル・DTO 分離なし
+-- 問題(#9):  戻り値の [User] にドメイン内部がそのまま露出
+handleSearchRequest :: (UserUseCase m) => String -> m [User]
+handleSearchRequest = searchUserByName
+
+-- ★ユーザ無効化コントローラ
+-- 問題(#9):  Int の uid に型安全性がない
+-- 問題(#24): 理由 (reason) を受け取る口がない。監査不可
+handleDeactivateRequest :: (UserUseCase m) => Int -> m ()
+handleDeactivateRequest = deactivateUser
+
 --------------------------------------------------------------------------------
 -- 5. Main
 --------------------------------------------------------------------------------
@@ -111,6 +179,13 @@ main :: IO ()
 main = do
     let input = RawParams "Pacho" "pacho@jocarium.productions"
     handleRegisterRequest input
+    -- ★上書き修正。履歴なし、監査証跡なし、Policy 検証なし
+    handleCorrectNameRequest 1 "Pacho Corrected"
+    -- ★検索：Write 用エンティティがそのまま返る。DTO 分離なし
+    results <- handleSearchRequest "Pacho"
+    putStrLn $ "[Main] search results: " ++ show results
+    -- ★物理削除。イベントも状態遷移もなし。復旧不可
+    handleDeactivateRequest 1
 ```
 
 ### 何が問題か
@@ -123,13 +198,19 @@ main = do
 | バリデーションが不在 | 値の妥当性を生成時に検証していない。不正な `Email` がドメイン内部に入り込む。 |
 | IO がドメインに侵入 | `saveUser` が `IO` モナドの型クラスとしてドメイン層に定義されている。テスト時にモックが必要になり、純粋性が失われる。 |
 | 全体が単一の整合性境界 | 集約境界が定義されておらず、全体が一つの塊として動く。変更が波及する範囲が不明。 |
+| 修正が上書き | `correctUserName` は `saveUser` で現在値を上書きする。訂正の事実（誰が・いつ・なぜ）が消える。監査不可。 |
+| 修正に状態チェックがない | 停止中ユーザの名前も修正できてしまう。状態を持たないので構造的に防げない。 |
+| ID が型で守られていない | `correctUserName :: Int -> String -> m ()` の `Int` は仕訳 ID でも通る。 |
+| 検索が Write モデルを返す | `searchUserByName` は Write 用の `User` をそのまま返す。Read モデルも DTO 分離もない。表示要件の変更が Domain に波及する。 |
+| 無効化が物理削除 | `deleteUser` でレコードを消す。イベントも状態遷移もない。誰が・いつ・なぜ無効化したか不明。復旧手段もない。 |
+| 暗黙 DI の雪だるま | `searchUserByName` の追加で `UserFinder m` 制約が増殖。`UndecidableInstances` の依存連鎖がさらに不透明になる。 |
 
 ---
 
-## 開発ポリシー 58 項
+## 開発ポリシー 69 項
 
 ERP では、通貨コード・会社コード・勘定科目コード・仕訳 ID・承認 ID など、似た文字列や数値が大量に交差する。
-型の区別が曖昧な設計は、この規模で必ず事故を起こす。以下の 58 項は、その事故を構造的に防ぐための制約である。
+型の区別が曖昧な設計は、この規模で必ず事故を起こす。以下の 69 項は、その事故を構造的に防ぐための制約である。
 
 ---
 
@@ -283,9 +364,153 @@ Bitemporal（記録時刻と有効時刻の二軸）が前提になる。
 
 ---
 
+### 9. CQRS（59〜69）
+
+CQRS は Write モデルと Read モデルを分離する。
+Write モデルはドメイン層のエンティティそのものである（GADT で状態遷移を型制約する集約）。
+Read モデルは Write とは独立した構造を持ち、参照に最適化された形でデータを保持する。
+
+この分離を正しく配置しないと、CQRS は名前だけになる。
+
+#### CQRS 崩壊パターン
+
+以下は全て NG である。
+
+| パターン | なぜ崩壊するか |
+|----------|--------------|
+| QueryService が Repository に直結 | Read が Write のストレージ構造に依存する。スキーマ変更が Read に波及し、分離の意味がない。 |
+| DTO が DB 構造そのまま | 表示要件とストレージ構造が密結合する。UI 変更のたびに DB を触ることになる。 |
+| Domain エンティティを Read で再利用 | Write モデルの GADT や状態遷移を Read 側が引きずる。Read は「今の値を見せる」だけなので、状態機械は不要。 |
+| Projection が DTO を直接返す | UI 変更が Infrastructure 層に波及する。Projection と表示形式が密結合し、独立に進化できない。 |
+| DTO が一種類しかない | QueryService が Adapter 層の外部 DTO を直接返すと、UseCase が表示層に依存する。 |
+
+#### 正しい思考モデル
+
+Read 側は四つの概念に分かれる。それぞれ別の責務を持つ。混ぜると壊れる。
+
+| 概念 | 責務 | 層 |
+|------|------|-----|
+| **Projection** | イベント列から Read 用の中間レコードを構築する。Write の集約構造とは無関係。DTO は作らない。 | Infrastructure |
+| **QueryService** | 「何を」「どの条件で」取得するかを定義し、中間レコードを内部 DTO に変換する。Projection の存在を知らない。 | Application |
+| **内部 DTO** | QueryService の返り値。UseCase が扱うデータの形。外部表現ではない。 | Application |
+| **外部 DTO** | API や UI に渡す最終形。内部 DTO から変換する。表示ラベルやフォーマットはここで付与する。 | Adapter |
+
+#### 配置の原則
+
+```
+Write 側                          Read 側
+─────────────────────────         ─────────────────────────
+Domain   : User 'Pending          （なし：Domain は Write 専用）
+           User 'Active
+           遷移関数・Policy
+
+Application : execute (Command)   QueryService (Query → 内部DTO)
+              EventPayload          ↑ Port（型シグネチャのみ）
+
+Infrastructure : EventStore        Projection（イベント → 中間レコード）
+                 envAppend           QueryPort の実装
+                 envLoad
+
+Adapter : Controller (HTTP)       内部DTO → 外部DTO 変換・レスポンス生成
+```
+
+- **Projection は Infrastructure 層にいる。** イベントストアを読み、中間レコードを構築する。DB やキャッシュへの書き込みもここ。DTO は作らない。
+- **QueryService の Port（型シグネチャ）は Application 層に定義する。** 実装は Infrastructure 層に置く。返り値は内部 DTO。
+- **外部 DTO は Adapter 層にいる。** 内部 DTO を外部表現に変換する。
+
+#### Haskell での表現
+
+```hs
+-- Infrastructure 層：Projection が作る中間レコード（DTO ではない）
+data UserSummaryRecord = UserSummaryRecord
+  { recId    :: Text
+  , recName  :: Text    -- ★ ユーザ名も Read モデルに保持
+  , recEmail :: Text
+  , recState :: Text    -- "pending" | "active"
+  } deriving Show
+
+-- Infrastructure 層：Projection（イベント列から中間レコードを構築）
+projectUserSummary :: [UserEvent] -> Maybe UserSummaryRecord
+projectUserSummary = foldl' go Nothing
+  where
+    go _ (UserEvent _ _ _ (V1 (Registered (UserId uid) (UserName n) (Email e)))) =
+      Just $ UserSummaryRecord uid n e "pending"
+    go (Just r) (UserEvent _ _ _ (V1 (Activated _))) =
+      Just $ r { recState = "active" }
+    go (Just r) (UserEvent _ _ _ (V2 (EmailCorrected _ (Email e)))) =
+      Just $ r { recEmail = e }
+    go (Just r) (UserEvent _ _ _ (V2 (NameCorrected _ (UserName n)))) =
+      Just $ r { recName = n }   -- ★ ユーザ名訂正も Projection に反映
+    go (Just r) (UserEvent _ _ _ (V2 (Deactivated _))) =
+      Just $ r { recState = "inactive" }  -- ★ 無効化も Projection に反映
+    go (Just r) (UserEvent _ _ _ (V2 (ManualAdjustment (Email e)))) =
+      Just $ r { recEmail = e }
+    go s _ = s
+
+-- Application 層：内部 DTO（UseCase が扱う形）
+data UserSummary = UserSummary
+  { summaryId    :: Text
+  , summaryName  :: Text
+  , summaryEmail :: Text
+  , summaryState :: Text
+  } deriving Show
+
+-- Application 層：QueryService の Port（レコード of functions）
+data QueryPort m = QueryPort
+  { findUserSummary :: UserId -> m (Maybe UserSummary)
+  , listActiveUsers :: m [UserSummary]
+  , searchByName    :: Text -> m [UserSummary]  -- ★ 名前検索（項目 #59, #61）
+  }
+
+-- Application 層：中間レコード → 内部 DTO 変換
+toSummary :: UserSummaryRecord -> UserSummary
+toSummary r = UserSummary (recId r) (recName r) (recEmail r) (recState r)
+
+-- Adapter 層：外部 DTO（API レスポンス用）
+data UserSummaryResponse = UserSummaryResponse
+  { respId    :: Text
+  , respName  :: Text
+  , respEmail :: Text
+  , respState :: Text
+  , respLabel :: Text   -- 表示用ラベル（"有効" / "保留中"）
+  } deriving Show
+
+-- Adapter 層：内部 DTO → 外部 DTO 変換
+toResponse :: UserSummary -> UserSummaryResponse
+toResponse s = UserSummaryResponse
+  (summaryId s) (summaryName s) (summaryEmail s) (summaryState s)
+  (case summaryState s of
+    "active"   -> "有効"
+    "inactive" -> "無効"
+    _          -> "保留中")
+```
+
+ポイントは四つ。
+
+1. **Projection は中間レコードを返す。DTO を直接作らない。** UI 変更が Infrastructure に波及しない。
+2. **内部 DTO（`UserSummary`）は Application 層。** QueryService のユースケースロジックがここに住む。
+3. **外部 DTO（`UserSummaryResponse`）は Adapter 層。** 表示ラベルやフォーマットはここで付与する。
+4. **`projectUserSummary` は純粋関数。** Write の `rehydrate` とは独立している。
+
+| # | 観点 | 問題 | 改善 |
+|---|------|------|------|
+| 59 | Write/Read の未分離 | 同じエンティティを参照と更新の両方に使う。表示要件が変わるたびに集約が汚れる。 | Write モデル（GADT 集約）と Read モデル（Projection + DTO）を完全に分離する。 |
+| 60 | Projection の層違反 | Projection を Application 層に置く。Application がストレージ構造を知ってしまう。 | Projection は Infrastructure 層に置く。イベントストアからの読み出しと中間レコードの生成はインフラの責務。 |
+| 61 | QueryService の直結 | QueryService が Repository や DB に直接アクセスする。Write のスキーマ変更が Read に波及する。 | QueryService の Port を Application 層に定義し、実装を Infrastructure 層に置く。Write のストレージ構造から隔離する。 |
+| 62 | DTO の単層化 | DTO が一種類しかなく、UseCase が表示形式に依存するか、Controller にロジックが漏れる。 | 内部 DTO（Application）と外部 DTO（Adapter）に分ける。QueryService は内部 DTO を返し、Adapter が外部 DTO に変換する。 |
+| 63 | Domain の Read 再利用 | GADT やスマートコンストラクタを Read 側で再利用する。Read に不要な型制約を持ち込む。 | ★ Read モデルに GADT は使わない。Read の目的は「今の値を見せる」ことであり、状態遷移の正しさは Write が責任を持つ。 |
+| 64 | Projection の純粋性 | Projection が IO に依存すると、テストや再実行が困難になる。 | ★ Projection の畳み込みロジックは純粋関数にする。IO はイベントの読み出しと結果の書き込みだけに限定する。 |
+| 65 | Read の非正規化 | Read モデルを正規化すると、参照のたびに結合が必要になる。CQRS の利点が消える。 | Read は参照に最適化して非正規化する。冗長性を許容し、クエリ性能を優先する。 |
+| 66 | Read の独立進化 | Read と Write のスキーマが密結合すると、一方の変更が他方を壊す。 | Read モデルは Write のイベントスキーマにのみ依存する。イベントが変わらない限り、Read は独立に進化できる。 |
+| 67 | Projection が DTO を直接返す | UI 変更が Infrastructure 層に波及する。Projection と表示形式が密結合する。 | Projection は中間レコードを返す。DTO への変換は Application 層以上で行う。 |
+| 68 | Read の整合性レベル | Read が常に最新であることを前提にすると、設計が壊れる。 | Read は Eventually Consistent であることを明示する。最新性が必要な場合は Write 側に問い合わせる。 |
+| 69 | Projection 更新戦略 | 同期か非同期かが未定義だと、レイテンシとスループットのトレードオフが読めない。 | 同期（低レイテンシ・低スループット）と非同期（高スループット・遅延あり）を明示的に選択する。 |
+
+---
+
 ## まとめ
 
-58 項目の本質は三つに集約される。
+69 項目の本質は三つに集約される。
 
 **第一に、構造の問題。** アンチパターンのコードは動くが、壊れ方が読めない。
 状態を型に寄せ、イベントを唯一の事実とし、Policy を分離し、ManualAdjustment を正規ルートにし、
@@ -299,13 +524,13 @@ GADT による不正状態の構造的排除、純粋関数による参照透過
 
 **第三に、最大のリスクは技術ではなく運用である。**
 抽象が強いほど、チームが守れないと逆に壊れる。
-この 58 項目は「コードの正解」ではなく「組織が維持すべき制約」である。
+この 69 項目は「コードの正解」ではなく「組織が維持すべき制約」である。
 
 ---
 
 ## 改善例
 
-以下のコードは 58 項のうち中核的な項目を反映している。
+以下のコードは 69 項のうち中核的な項目を反映している。
 
 ```hs
 {-# LANGUAGE GADTs #-}
@@ -333,14 +558,16 @@ import Data.Time             (UTCTime, Day, getCurrentTime)
 -- エラー型（Policy・FSM 双方で使う。先に定義する）
 data DomainError
   = InvalidEmail
+  | InvalidUserName        -- ★ユーザ名バリデーション用（項目 #2, #7）
   | IllegalTransition
   | AdjustmentRequiresReason
   deriving Show
 
 -- 値オブジェクト（コンストラクタ非公開＋スマートコンストラクタ）
-newtype UserId  = UserId Text  deriving Show
-newtype Email   = Email Text   deriving Show
-newtype Version = Version Int  deriving (Show, Eq, Ord)
+newtype UserId   = UserId Text   deriving Show
+newtype UserName = UserName Text deriving Show  -- ★ユーザ名も newtype（項目 #1, #11）
+newtype Email    = Email Text    deriving Show
+newtype Version  = Version Int   deriving (Show, Eq, Ord)
 
 -- スマートコンストラクタ：不正な Email は作れない（項目 #2）
 mkEmail :: Text -> Either DomainError Email
@@ -348,15 +575,24 @@ mkEmail e
   | "@" `T.isInfixOf` e = Right (Email e)
   | otherwise            = Left InvalidEmail
 
+-- スマートコンストラクタ：空文字や長すぎるユーザ名は作れない（項目 #2）
+mkUserName :: Text -> Either DomainError UserName
+mkUserName n
+  | T.null n         = Left InvalidUserName
+  | T.length n > 100 = Left InvalidUserName
+  | otherwise         = Right (UserName n)
+
 nextVersion :: Version -> Version
 nextVersion (Version v) = Version (v + 1)
 
 -- 状態遷移を型で表現（項目 #3, #4, #13, #14）
-data UserState = Pending | Active
+data UserState = Pending | Active | Inactive  -- ★ 無効化状態を追加（項目 #4）
 
+-- ★ ユーザ名を GADT の各コンストラクタに保持する（項目 #15）
 data User (s :: UserState) where
-  UserP :: UserId -> Email -> Version -> User 'Pending
-  UserA :: UserId -> Email -> Version -> User 'Active
+  UserP :: UserId -> UserName -> Email -> Version -> User 'Pending
+  UserA :: UserId -> UserName -> Email -> Version -> User 'Active
+  UserD :: UserId -> UserName -> Email -> Version -> User 'Inactive
 
 -- Application 層でのみ使う存在型（項目 #20：型消去の範囲を限定）
 data SomeUser where
@@ -368,13 +604,15 @@ data SomeUser where
 --------------------------------------------------------------------------------
 
 data EventPayloadV1
-  = Registered UserId Email
+  = Registered UserId UserName Email   -- ★ 登録時にユーザ名を含む
   | Activated  UserId
   deriving Show
 
 data EventPayloadV2
-  = Corrected UserId Email
-  | ManualAdjustment Email      -- 救済（項目 #39）：正規のイベント
+  = EmailCorrected UserId Email        -- メール訂正
+  | NameCorrected  UserId UserName     -- ★ ユーザ名訂正（項目 #23：イベントを具体的に分ける）
+  | Deactivated    UserId              -- ★ 無効化（項目 #4：状態遷移はイベントで表現）
+  | ManualAdjustment Email              -- 救済（項目 #39）：正規のイベント
   deriving Show
 
 data EventPayload
@@ -397,32 +635,47 @@ data UserEvent = UserEvent
 type Transition = Maybe SomeUser -> UserEvent -> Either DomainError SomeUser
 
 registeredT :: Transition
-registeredT Nothing (UserEvent v _ _ (V1 (Registered uid email))) =
-  Right $ SomeUser $ UserP uid email v
+registeredT Nothing (UserEvent v _ _ (V1 (Registered uid name email))) =
+  Right $ SomeUser $ UserP uid name email v
 registeredT _ _ = Left IllegalTransition
 
 activatedT :: Transition
-activatedT (Just (SomeUser (UserP uid e _))) (UserEvent v _ _ (V1 (Activated _))) =
-  Right $ SomeUser $ UserA uid e v
+activatedT (Just (SomeUser (UserP uid n e _))) (UserEvent v _ _ (V1 (Activated _))) =
+  Right $ SomeUser $ UserA uid n e v
 activatedT _ _ = Left IllegalTransition
 
-correctedT :: Transition
-correctedT (Just (SomeUser (UserP uid _ _))) (UserEvent v _ _ (V2 (Corrected _ e))) =
-  Right $ SomeUser $ UserP uid e v
-correctedT (Just (SomeUser (UserA uid _ _))) (UserEvent v _ _ (V2 (Corrected _ e))) =
-  Right $ SomeUser $ UserA uid e v
-correctedT _ _ = Left IllegalTransition
+-- ★ メール訂正遷移
+emailCorrectedT :: Transition
+emailCorrectedT (Just (SomeUser (UserP uid n _ _))) (UserEvent v _ _ (V2 (EmailCorrected _ e))) =
+  Right $ SomeUser $ UserP uid n e v
+emailCorrectedT (Just (SomeUser (UserA uid n _ _))) (UserEvent v _ _ (V2 (EmailCorrected _ e))) =
+  Right $ SomeUser $ UserA uid n e v
+emailCorrectedT _ _ = Left IllegalTransition
+
+-- ★ ユーザ名訂正遷移（項目 #5：型シグネチャが仕様書）
+-- Active 状態でのみ許可。Pending では名前が未確定なので修正できない。
+nameCorrectedT :: Transition
+nameCorrectedT (Just (SomeUser (UserA uid _ e _))) (UserEvent v _ _ (V2 (NameCorrected _ n))) =
+  Right $ SomeUser $ UserA uid n e v
+nameCorrectedT _ _ = Left IllegalTransition
+
+-- ★ 無効化遷移（項目 #4, #5：Active でのみ許可。Pending/Inactive は遷移不可）
+-- GADT のパターンマッチにより、UserA 以外は構造的に排除される。
+deactivatedT :: Transition
+deactivatedT (Just (SomeUser (UserA uid n e _))) (UserEvent v _ _ (V2 (Deactivated _))) =
+  Right $ SomeUser $ UserD uid n e v
+deactivatedT _ _ = Left IllegalTransition
 
 manualT :: Transition
-manualT (Just (SomeUser (UserP uid _ _))) (UserEvent v _ _ (V2 (ManualAdjustment e))) =
-  Right $ SomeUser $ UserP uid e v
-manualT (Just (SomeUser (UserA uid _ _))) (UserEvent v _ _ (V2 (ManualAdjustment e))) =
-  Right $ SomeUser $ UserA uid e v
+manualT (Just (SomeUser (UserP uid n _ _))) (UserEvent v _ _ (V2 (ManualAdjustment e))) =
+  Right $ SomeUser $ UserP uid n e v
+manualT (Just (SomeUser (UserA uid n _ _))) (UserEvent v _ _ (V2 (ManualAdjustment e))) =
+  Right $ SomeUser $ UserA uid n e v
 manualT _ _ = Left IllegalTransition
 
 -- 中央ルーター：ディスパッチだけ。目次として全遷移を一覧できる（項目 #17）
 transitions :: [Transition]
-transitions = [registeredT, activatedT, correctedT, manualT]
+transitions = [registeredT, activatedT, emailCorrectedT, nameCorrectedT, deactivatedT, manualT]
 
 applyEvent :: Maybe SomeUser -> UserEvent -> Either DomainError SomeUser
 applyEvent st ev = go transitions
@@ -456,13 +709,29 @@ combine ps ctx s e = mapM_ (\p -> p ctx s e) ps
 
 -- メールバリデーション Policy
 emailPolicy :: Policy
-emailPolicy _ _ (V1 (Registered _ (Email e)))
+emailPolicy _ _ (V1 (Registered _ _ (Email e)))
   | "@" `T.isInfixOf` e = Right ()
   | otherwise            = Left InvalidEmail
-emailPolicy _ _ (V2 (Corrected _ (Email e)))
+emailPolicy _ _ (V2 (EmailCorrected _ (Email e)))
   | "@" `T.isInfixOf` e = Right ()
   | otherwise            = Left InvalidEmail
 emailPolicy _ _ _ = Right ()
+
+-- ★ ユーザ名バリデーション Policy（項目 #33：合成可能な Policy として追加するだけ）
+namePolicy :: Policy
+namePolicy _ _ (V1 (Registered _ (UserName n) _))
+  | T.null n  = Left InvalidUserName
+  | otherwise = Right ()
+namePolicy _ _ (V2 (NameCorrected _ (UserName n)))
+  | T.null n  = Left InvalidUserName
+  | otherwise = Right ()
+namePolicy _ _ _ = Right ()
+
+-- ★ 無効化 Policy（項目 #4, #33：Active 状態でのみ許可。Policy の合成で追加するだけ）
+deactivationPolicy :: Policy
+deactivationPolicy _ (Just (SomeUser (UserA _ _ _ _))) (V2 (Deactivated _)) = Right ()
+deactivationPolicy _ _ (V2 (Deactivated _)) = Left IllegalTransition
+deactivationPolicy _ _ _ = Right ()
 
 -- ManualAdjustment 用の独立した Policy（項目 #42：bypass ではなく別ルート）
 adjustmentPolicy :: Policy
@@ -522,6 +791,20 @@ execute uid payload = do
   ok <- liftIO $ envAppend env uid currentV ev
   unless ok $ throwError VersionConflict
 
+-- ★ ユーザ名修正ユースケース（項目 #50：Controller は UseCase を呼ぶだけ）
+-- 呼び出し元は生の Text を渡し、UseCase がスマートコンストラクタで検証する。
+correctName :: UserId -> Text -> AppM ()
+correctName uid rawName = do
+  -- 項目 #2：値の生成時に妥当性を確定
+  name <- liftDomain $ mkUserName rawName
+  -- 項目 #24：訂正は新イベントとして積む。上書きしない。
+  execute uid (V2 (NameCorrected uid name))
+
+-- ★ ユーザ無効化ユースケース（項目 #4：Active → Inactive のみ。FSM + Policy が保証）
+deactivate :: UserId -> AppM ()
+deactivate uid =
+  execute uid (V2 (Deactivated uid))
+
 --------------------------------------------------------------------------------
 -- 6. Entry Point
 --------------------------------------------------------------------------------
@@ -533,15 +816,34 @@ main = do
   let env = Env
         { envLoad    = \_ -> pure []
         , envAppend  = \_ _ ev -> print ev >> pure True
-        , envPolicy  = routePolicy [emailPolicy] adjustmentPolicy
+        , envPolicy  = routePolicy [emailPolicy, namePolicy, deactivationPolicy] adjustmentPolicy
         , envContext  = ctx
         }
 
-  result <- runReaderT
+  -- 登録
+  r1 <- runReaderT
     (runExceptT
       (execute
         (UserId "pacho")
-        (V1 (Registered (UserId "pacho") (Email "pacho@jocarium.productions")))))
+        (V1 (Registered (UserId "pacho") (UserName "Pacho") (Email "pacho@jocarium.productions")))))
     env
-  print result
+  print r1
+
+  -- ★ ユーザ名修正（訂正イベントとして積む。上書きではない）
+  r2 <- runReaderT
+    (runExceptT
+      (correctName (UserId "pacho") "Pacho Corrected"))
+    env
+  print r2
+
+  -- ★ ユーザ無効化（Active → Inactive のみ。FSM + Policy が構造的に保証）
+  r3 <- runReaderT
+    (runExceptT
+      (deactivate (UserId "pacho")))
+    env
+  print r3
+
+  -- ★ Read 側の名前検索は QueryPort 経由（§9 CQRS セクション参照）
+  -- searchByName queryPort "Pacho" >>= mapM_ (print . toResponse)
+  -- Write の Domain 型には触れない。Read は Projection → 中間レコード → 内部 DTO → 外部 DTO。
 ```
