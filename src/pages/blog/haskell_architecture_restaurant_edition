@@ -1,0 +1,89 @@
+---
+layout: ../../layouts/BlogLayout.astro
+title: Haskell Architecture Blueprint - Restaurant Edition
+description: Exploring the evolution of Haskell design patterns from Type-class DI to ReaderT + Env.
+tags: ["Haskell", "Architecture", "Functional Programming", "Design Patterns"]
+time: 20
+featured: true
+timestamp: 2026-04-17T09:46:49+00:00
+filename: haskell_architecture_restaurant_edition
+---
+
+ご指摘、痛み入ります。まさに仰る通りです。
+カリー化の本質は「構造（一引数関数の連鎖）」にあり、部分適用はその構造から得られる「性質」であり、DB注入はさらにその性質を利用した「実装パターン」に過ぎません。
+
+また、`pure` についても「閉じる」という表現は、まるでリソースをクローズするかのような誤解を招く恐れがあります。本質は「単なる値を、文脈（モナド）という世界へ持ち込む」という**「昇華（Lift）」**あるいは**「文脈への注入」**です。
+
+これらを反映し、より正確で洗練された**【決定版リファレンス】**に修正しました。
+
+---
+
+## 0. Haskellの基本
+
+* **カリー化**: Haskellの関数はすべて引数を1つずつ受け取る「一引数関数の連鎖」です。これにより、引数を途中まで適用した「部分適用」の関数を値として保持でき、後から残りの引数（DB設定など）を注入する柔軟な設計を可能にします。
+* **モナド**: 「失敗の可能性」や「副作用」といった計算の付随情報を「文脈」として管理する仕組みです。`do` 構文の中で `<-`（バインド）を使うことで、文脈を維持したまま中身の値だけをリレーできます。
+* **pure**: 生の値を、余計な効果を付け加えずに「モナドの文脈」へと持ち込む（リフトする）関数です。
+
+---
+
+## 1. 旧パターン：型クラスDI（命令型スタイル）
+**「キッチンがホールに直接指示を出す」スタイル**
+
+キッチン（Interactor）がホールのインターフェース（OutputPort）に依存し、処理の過程で直接「成功通知」や「エラー通知」のメソッドを呼び出す形式です。
+
+### 構造
+* **InputPort**: `class OrderOmuricePort m`
+* **OutputPort**: `class ServeOmuricePort m`（副作用を伴うメソッドを持つ）
+* **Interactor**: 自身の中で `serveSuccess` や `serveFailure` を直接実行する。
+
+### 特徴
+* **制御の主導権**: キッチン（Interactor）が持つ。
+* **メリット**: 依存関係が「型制約」として分散され、個々の関数の型シグネチャが簡潔に保たれる。
+* **デメリット**: キッチンが「どう画面に表示するか（副作用）」という制御フローを握っているため、ドメインロジックの純粋性が損なわれやすい。
+
+---
+
+## 2. 新パターン：ReaderT + Env（値変換スタイル）
+**「キッチンは完成した皿（値）をカウンターに置くだけ」スタイル**
+
+キッチンはホールの存在を知りません。ただ「環境（Env）」を利用して計算を行い、最終的な「結果（値）」を返すことに徹します。
+
+### 構造
+* **KitchenEnv**: 外部サービス（DB等）へのアクセス関数を保持するレコード。
+* **KitchenM**: `ExceptT`（エラー系）と `ReaderT`（環境系）を組み合わせた合成モナド。
+* **Interactor**: `cookOmurice` は `KitchenM OmuriceResponse` という**型**（文脈を伴う計算）を返す。
+
+### コードの核心
+```haskell
+cookOmurice :: OrderDto -> KitchenM OmuriceResponse
+cookOmurice dto = do
+  env    <- ask                                  -- 1. 環境(Env)を参照する
+  recipe <- liftIO $ lookupRecipe env "omurice"  -- 2. 環境内の関数を適用(副作用)
+  dish   <- liftEither $ makeOmurice recipe dto  -- 3. 純粋なドメインロジック
+  pure (plate dish)                              -- 4. 成功した値を文脈に載せて返す
+```
+
+### 特徴
+* **制御の主導権**: ホール（Adapter/呼び出し側）が持つ。
+* **メリット**: Interactorが「副作用の実行」から「値の計算」へとシフトし、純粋な変換装置になる。テスト時は `Env` の関数を差し替えるだけで済み、モックの生成が直感的。
+* **注意点（Envの肥大化）**: 依存が増えると `Env` が巨大なレコード（God Object）化します。集約やユースケースごとに `Env` を適切に分割し、必要な依存のみを渡す設計が重要です。
+
+---
+
+## 3. 対比の核心まとめ
+
+| 役割 | 旧パターン (型クラスDI) | 新パターン (ReaderT + Env) |
+| :--- | :--- | :--- |
+| **InputPort** | `class OrderOmuricePort m` | `cookOmurice` 関数の型シグネチャ |
+| **Interactor** | インスタンス内の「振る舞い」 | 関数本体による「値の変換」 |
+| **OutputPort** | `class ServeOmuricePort m` | **`Either` (情報)** ＋ **呼び出し側の `case` 式 (制御)** |
+| **主導権** | キッチン（Interactor） | ホール（Adapter/呼び出し側） |
+| **抽象化の対象** | 副作用を伴う「命令」 | 環境の「参照」と結果の「値」 |
+
+---
+
+## 4. 結論：設計の指針
+
+Haskellにおける洗練された設計とは、副作用（IO）という「泥」を可能な限りシステムの末端（Adapter層）へ追いやり、ビジネスロジックの中核を「純粋な変換」として保つことです。
+
+新パターンは、**OutputPortを「データ」と「制御（case式）」に分離**することで、Interactorを「外界」から解き放ちます。プログラムはもはや命令の羅列ではなく、環境を読み取り、値を次の文脈へ繋いでいく、美しく堅牢な一本の鎖となります。
