@@ -22,7 +22,6 @@ filename: haskell_architecture_restaurant_edition
 
 ```haskell
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -34,7 +33,7 @@ import System.Environment (getArgs)
 import Text.Read (readMaybe)
 
 -- ==========================================
--- 共通ログ定義（Single Source of Truth）
+-- 共通ログ定義（SSOT）
 -- ==========================================
 logReceived = "【システム】注文リクエストを受信しました。"
 
@@ -77,21 +76,25 @@ newtype DishName = DishName Text deriving (Show)
 data Dish = Dish {dishId :: DishId, dishName :: DishName} deriving (Show)
 
 -- ==========================================
--- アプリケーション層
+-- アプリケーション層 (Interface & UseCase)
 -- ==========================================
 data OrderReqDto = OrderReqDto {tableNo :: TableNumber, dishName :: Text}
 
+-- Output Port (Interface)
 class (Monad m) => OrderPresenter m where
     reportProgress :: Text -> m ()
     presentSuccess :: Text -> m ()
     presentFailure :: Text -> m ()
 
+-- Repository Port (Interface)
 class (Monad m) => OrderRepository m where
     findDishByName :: Text -> m (Maybe Dish)
 
+-- Input Port & Interactor
 class (Monad m) => OrderUseCase m where
     executeOrder :: OrderReqDto -> m ()
 
+-- ビジネスロジックの本体。特定の型クラス（能力）を持つ m なら何でも動く。
 instance (Monad m, OrderRepository m, OrderPresenter m) => OrderUseCase m where
     executeOrder dto = do
         reportProgress logReceived
@@ -105,17 +108,14 @@ instance (Monad m, OrderRepository m, OrderPresenter m) => OrderUseCase m where
                 reportProgress logNotFound
                 presentFailure $ failureMsg dto.dishName
             Just _ -> do
-                reportProgress logCooking1
-                reportProgress logCooking2
-                reportProgress logCooking3
-                reportProgress logPlating
-                reportProgress logCallStaff
-                reportProgress logMoveCounter
+                mapM_ reportProgress [logCooking1, logCooking2, logCooking3, logPlating, logCallStaff, logMoveCounter]
                 presentSuccess $ successMsg dto.dishName
 
 -- ==========================================
--- アダプター層
+-- アダプター層 (Controller & Instance Implementation)
 -- ==========================================
+
+-- 本番用/モック用の実装（IOインスタンス）
 instance OrderRepository IO where
     findDishByName name = do
         let menu = [Dish (DishId "D01") (DishName "BACON")]
@@ -126,22 +126,26 @@ instance OrderPresenter IO where
     presentSuccess res = putStrLn $ " ★★★ SUCCESS: " ++ T.unpack res
     presentFailure err = putStrLn $ " !!! FAILURE: " ++ T.unpack err
 
+-- コントローラ：CLI入力をドメイン型に変換し、UseCaseを起動する
+orderController :: [String] -> IO ()
+orderController args = case args of
+    [t, d] ->
+        case ( do
+                tInt <- maybe (Left "テーブル番号は数値で入力してください。") Right (readMaybe t)
+                tNo <- mkTableNumber tInt
+                pure $ OrderReqDto tNo (T.pack d)
+             ) of
+            Left e -> putStrLn $ "【入力エラー】" ++ T.unpack e
+            Right dto -> executeOrder dto -- ここで IO インスタンスが選択される
+    _ -> putStrLn "Usage: runhaskell A.hs <1-9> <Dish>"
+
 -- ==========================================
 -- エントリーポイント
 -- ==========================================
 main :: IO ()
 main = do
     args <- getArgs
-    case args of
-        [t, d] ->
-            case ( do
-                    tInt <- maybe (Left "数値で") Right (readMaybe t)
-                    tNo <- mkTableNumber tInt
-                    pure $ OrderReqDto tNo (T.pack d)
-                 ) of
-                Left e -> putStrLn $ "【ERROR】" ++ T.unpack e
-                Right dto -> executeOrder dto
-        _ -> putStrLn "Usage: runhaskell A.hs <1-9> <Dish>"
+    orderController args
 ```
 
 キッチン（Interactor）がホールのインターフェース（Output Port）に依存し、処理の過程で直接「進捗報告」や「成功通知」などのメソッドを呼び出す形式です。
@@ -175,7 +179,7 @@ import System.Environment (getArgs)
 import Text.Read (readMaybe)
 
 -- ==========================================
--- 共通ログ定義
+-- 共通ログ定義 (SSOT)
 -- ==========================================
 logReceived = "【システム】注文リクエストを受信しました。"
 
@@ -218,16 +222,11 @@ newtype DishName = DishName Text deriving (Show)
 data Dish = Dish {dishId :: DishId, dishName :: DishName} deriving (Show)
 
 -- ==========================================
--- アプリケーション層
+-- アプリケーション層 (UseCase / Business Logic)
 -- ==========================================
 data OrderReqDto = OrderReqDto {tableNo :: TableNumber, dishName :: Text}
 
-toOrderReqDto :: String -> String -> Either Text OrderReqDto
-toOrderReqDto rawT rawD = do
-    tInt <- maybe (Left "テーブル番号は数値で入力してください。") Right (readMaybe rawT)
-    tNo <- mkTableNumber tInt
-    pure $ OrderReqDto tNo (T.pack rawD)
-
+-- 依存関係の定義
 data AppEnv = AppEnv
     { envFindDish :: Text -> IO (Maybe Dish)
     , envReport :: Text -> IO ()
@@ -235,6 +234,7 @@ data AppEnv = AppEnv
 
 type AppM = ExceptT Text (ReaderT AppEnv IO)
 
+-- ビジネスロジック：調理手順の記述に専念
 executeOrder :: OrderReqDto -> AppM Text
 executeOrder dto = do
     env <- ask
@@ -242,8 +242,8 @@ executeOrder dto = do
 
     report logReceived
     report $ logTableConfirmed (T.pack $ show dto.tableNo)
-
     report logCheckMenu
+
     dishOpt <- liftIO $ env.envFindDish dto.dishName
 
     case dishOpt of
@@ -251,43 +251,66 @@ executeOrder dto = do
             report logNotFound
             throwError $ failureMsg dto.dishName
         Just _ -> do
-            report logCooking1
-            report logCooking2
-            report logCooking3
-            report logPlating
-            report logCallStaff
-            report logMoveCounter
+            mapM_ report [logCooking1, logCooking2, logCooking3, logPlating, logCallStaff, logMoveCounter]
             pure $ successMsg dto.dishName
 
 -- ==========================================
--- アダプター層
+-- アダプター層 (Controller / Presenter)
 -- ==========================================
+
+-- 入力変換の責務
+toOrderReqDto :: String -> String -> Either Text OrderReqDto
+toOrderReqDto rawT rawD = do
+    tInt <- maybe (Left "テーブル番号は数値で入力してください。") Right (readMaybe rawT)
+    tNo <- mkTableNumber tInt
+    pure $ OrderReqDto tNo (T.pack rawD)
+
+-- コントローラ：外部入力を受け取り、ユースケースを動かし、結果をプレゼンターに渡す
+orderController :: AppEnv -> [String] -> IO ()
+orderController env args = case args of
+    [rawT, rawD] ->
+        case toOrderReqDto rawT rawD of
+            Left err -> putStrLn $ "【入力エラー】" ++ T.unpack err
+            Right dto -> do
+                -- アプリケーションの実行 (Runnerとしての役割)
+                result <- runReaderT (runExceptT (executeOrder dto)) env
+                orderPresenter result
+    _ ->
+        putStrLn "Usage: runhaskell B.hs <1-9> <Dish>"
+
+-- プレゼンター：最終的な結果をユーザーに見える形に整形
 orderPresenter :: Either Text Text -> IO ()
 orderPresenter (Left err) = putStrLn $ " !!! FAILURE: " ++ T.unpack err
 orderPresenter (Right res) = putStrLn $ " ★★★ SUCCESS: " ++ T.unpack res
+
+-- ==========================================
+-- インフラストラクチャ層 (具体的な実装)
+-- ==========================================
+mockFindDish :: Text -> IO (Maybe Dish)
+mockFindDish name = do
+    let menu = [Dish (DishId "D01") (DishName "BACON")]
+    pure $ find (\d -> case d.dishName of DishName n -> n == name) menu
+
+mockReporter :: Text -> IO ()
+mockReporter msg = putStrLn $ " [PROGRESS] " ++ T.unpack msg
 
 -- ==========================================
 -- エントリーポイント
 -- ==========================================
 main :: IO ()
 main = do
-    args <- getArgs
-    case args of
-        [rawT, rawD] -> do
-            let env =
-                    AppEnv
-                        { envFindDish = \name -> do
-                            let menu = [Dish (DishId "D01") (DishName "BACON")]
-                            pure $ find (\d -> case d.dishName of DishName n -> n == name) menu
-                        , envReport = \msg -> putStrLn $ " [PROGRESS] " ++ T.unpack msg
-                        }
+    -- 1. 環境（依存関係）の組み立て
+    let env =
+            AppEnv
+                { envFindDish = mockFindDish
+                , envReport = mockReporter
+                }
 
-            case toOrderReqDto rawT rawD of
-                Left err -> putStrLn $ "【ERROR】" ++ T.unpack err
-                Right dto -> do
-                    result <- runReaderT (runExceptT (executeOrder dto)) env
-                    orderPresenter result
-        _ -> putStrLn "Usage: runhaskell B.hs <1-9> <Dish>"
+    -- 2. 引数の取得
+    args <- getArgs
+
+    -- 3. コントローラに委譲
+    orderController env args
 ```
 
 ### パターン2：ReaderT + Env（値変換 ＋ 環境活用スタイル）
