@@ -17,7 +17,7 @@ filename: haskell_architecture_restaurant_edition
 
 ---
 
-## 1. 旧パターン：型クラスDI（命令型スタイル）
+## 1. 旧パターン：型クラスDI（インターフェース・命令スタイル）
 **「キッチンがホールに直接指示を出す」スタイル**
 
 ```haskell
@@ -144,17 +144,17 @@ main = do
         _ -> putStrLn "Usage: runhaskell A.hs <1-9> <Dish>"
 ```
 
-キッチン（Interactor）がホールのインターフェース（OutputPort）に依存し、処理の過程で直接「成功通知」や「エラー通知」のメソッドを呼び出す形式です。
+キッチン（Interactor）がホールのインターフェース（Output Port）に依存し、処理の過程で直接「進捗報告」や「成功通知」などのメソッドを呼び出す形式です。
 
-### 構造
-* **InputPort**: `class OrderOmuricePort m`
-* **OutputPort**: `class ServeOmuricePort m`（副作用を伴うメソッドを持つ）
-* **Interactor**: 自身の中で `serveSuccess` や `serveFailure` を直接実行する。
+#### 構造
+* **Input Port**: `class OrderUseCase m`
+* **Output Port**: `class OrderPresenter m`（進捗報告 `reportProgress` や最終通知 `presentSuccess` などの抽象メソッドを持つ）
+* **Interactor**: `executeOrder` 関数内で、Presenter のメソッドを適切なタイミングで直接叩く「ストーリーテラー」として振る舞う。
 
-### 特徴
-* **制御の主導権**: キッチン（Interactor）が持つ。
-* **メリット**: 依存関係が「型制約」として分散され、個々の関数の型シグネチャが簡潔に保たれる。
-* **デメリット**: キッチンが「どう画面に表示するか（副作用）」という制御フローを握っているため、ドメインロジックの純粋性が損なわれやすい。
+#### 特徴
+* **制御の主導権**: キッチン（Interactor）が持つ。いつ、どのタイミングでユーザーに情報を提示するかは、キッチン側のロジックで決定される。
+* **メリット**: 依存関係が「型制約（Constraints）」として抽象化されるため、関数の型シグネチャが `(Monad m, OrderPresenter m) => ...` のように宣言的で簡潔に保たれる。また、特定の具体的なデータ構造（Envレコードなど）に縛られない。
+* **デメリット**: キッチンが「どの副作用をどの順番で呼び出すか」という実行フローの全権を握るため、実装が IO などの「実行コンテキスト」に強く結びつきやすい。テスト時には、対象の型クラスに対するモックインスタンスを個別に定義する必要がある。
 
 ---
 
