@@ -16,20 +16,19 @@
 	},
 	"dependencies": {
 		"@astro-community/astro-embed-link-preview": "^0.3.1",
-		"@astrojs/mdx": "^4.3.13",
-		"@astrojs/sitemap": "^3.7.0",
+		"@astrojs/mdx": "^8.1.0",
+		"@astrojs/sitemap": "^3.7.4",
 		"@astrojs/tailwind": "6.0.2",
-		"@tailwindcss/typography": "^0.5.19",
-		"@tailwindcss/vite": "^4",
-		"astro": "^5.17.2",
-		"rehype-katex": "^7",
-		"rehype-mermaid": "^3.0.0",
-		"remark-math": "^6",
-		"tailwindcss": "^4"
+		"@tailwindcss/typography": "^0.5.20",
+		"@tailwindcss/vite": "^4.3.3",
+		"astro": "^7.4.0",
+		"rehype-katex": "^7.0.1",
+		"remark-math": "^6.0.0",
+		"tailwindcss": "^4.3.3"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.2",
-		"@cloudflare/workers-types": "^4.20260218.0",
-		"@types/node": "^25.2.3"
+		"@biomejs/biome": "^2.5.15",
+		"@cloudflare/workers-types": "^5.20261019.1",
+		"@types/node": "^26.6.5"
 	}
 }
