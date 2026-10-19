@@ -12,14 +12,14 @@ filename: sc-texts
 
 | 章 | 対応ページ | テーマ | 学習配分 | 補足 |
 | --- | --- | --- | --- | --- |
-| 1 | [2026年度SC科目B 攻略ガイド](https://jocarium.productions/blog/sc_1) | 全体マップ | ― | 試験形式、出題傾向、重点5テーマ、問題選択の考え方。 |
-| 2 | [Webアプリ脆弱性とAPI認可](https://jocarium.productions/blog/sc_2) | 重点1 | 25% | IDOR/BOLA、XSS、CSRF、SSRF、CSP、Cookie、セッション管理、JWT。 |
-| 3 | [認証基盤・パスキー・OAuth/OIDC](https://jocarium.productions/blog/sc_3) | 重点2 | 20% | FIDO2/パスキー、OAuth・OIDC・PKCE、SAML、PKI、鍵管理。 |
-| 4 | [ネットワーク・通信基盤のセキュリティ](https://jocarium.productions/blog/sc_4) | 重点3 | 20% | DNS/DNSSEC/DoH、VPN、FWルール設計、TLS、SPF/DKIM/DMARC。 |
-| 5 | [ランサムウェア侵害とインシデント対応](https://jocarium.productions/blog/sc_5) | 重点4 | 20% | EDR、Windowsイベントログ、横展開、封じ込め、証拠保全。 |
-| 6 | [サプライチェーン・BCP・セキュリティ管理](https://jocarium.productions/blog/sc_6) | 重点5 | 15% | CI/CD・SBOM、脆弱性管理、リスク評価、委託先管理、BIA・RTO/RPO、バックアップ。 |
-| 7 | [横断領域 暗号・クラウド・法務](https://jocarium.productions/blog/sc_7) | 横断 | ― | 暗号の使い分け、クラウドIAM、ゼロトラスト、個人情報保護法の報告義務。 |
-| 8 | [複合シナリオ演習と記述答案](https://jocarium.productions/blog/sc_8) | 演習 | ― | 模擬シナリオ4題、記述答案の型、時間配分、直前チェックリスト。 |
+| 1 | [2026年度SC科目B 攻略ガイド](/blog/sc_1) | 全体マップ | ― | 試験形式、出題傾向、重点5テーマ、問題選択の考え方。 |
+| 2 | [Webアプリ脆弱性とAPI認可](/blog/sc_2) | 重点1 | 25% | IDOR/BOLA、XSS、CSRF、SSRF、CSP、Cookie、セッション管理、JWT。 |
+| 3 | [認証基盤・パスキー・OAuth/OIDC](/blog/sc_3) | 重点2 | 20% | FIDO2/パスキー、OAuth・OIDC・PKCE、SAML、PKI、鍵管理。 |
+| 4 | [ネットワーク・通信基盤のセキュリティ](/blog/sc_4) | 重点3 | 20% | DNS/DNSSEC/DoH、VPN、FWルール設計、TLS、SPF/DKIM/DMARC。 |
+| 5 | [ランサムウェア侵害とインシデント対応](/blog/sc_5) | 重点4 | 20% | EDR、Windowsイベントログ、横展開、封じ込め、証拠保全。 |
+| 6 | [サプライチェーン・BCP・セキュリティ管理](/blog/sc_6) | 重点5 | 15% | CI/CD・SBOM、脆弱性管理、リスク評価、委託先管理、BIA・RTO/RPO、バックアップ。 |
+| 7 | [横断領域 暗号・クラウド・法務](/blog/sc_7) | 横断 | ― | 暗号の使い分け、クラウドIAM、ゼロトラスト、個人情報保護法の報告義務。 |
+| 8 | [複合シナリオ演習と記述答案](/blog/sc_8) | 演習 | ― | 模擬シナリオ4題、記述答案の型、時間配分、直前チェックリスト。 |
 
 ## 主要情報セキュリティ資格の比較
 
