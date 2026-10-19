@@ -8,23 +8,18 @@ featured: false
 filename: sc-texts
 ---
 
-## 目次
+## 目次（2026年度 科目B対策版）
 
-| 章  | 対応ページ                                                                       | 主な対象分野                                    | 補足                                                                                     |
-| --- | -------------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 1   | [暗号理論基礎](https://jocarium.productions/blog/sc_1)                         | 暗号技術                                        | セキュリティ全体の基盤。鍵交換・署名・ハッシュ等。                                       |
-| 2   | [認証・認可プロトコル論](https://jocarium.productions/blog/sc_2)                 | 認証・認可                                      | IDフェデレーション技術の構造理解（SAML／OAuth等）。                                      |
-| 3   | [セキュア開発基礎](https://jocarium.productions/blog/sc_3)                     | Webアプリセキュリティ                           | XSS／SQLiなど攻撃と対策の実装知識。DevSecOps文脈にも接続。                               |
-| 4   | [通信防御基礎](https://jocarium.productions/blog/sc_4)                         | ネットワークセキュリティ                        | TLS／VPN／IDS/IPS／プロキシの理解。                                                      |
-| 5   | [攻撃手法と防衛策の実践論](https://jocarium.productions/blog/sc_5)               | マルウェア／DoS／C2通信など                     | 攻撃分類、IOC、EDR等による検知と対応。                                                   |
-| 6   | [フォレンジック特論](https://jocarium.productions/blog/sc_6)             　　　　| ログ管理／証跡分析                              | 初動対応・時刻同期・証拠保全含む。フォレンジックの思考訓練も含む。                       |
-| 7   | [インシデント対応体制論](https://jocarium.productions/blog/sc_7)                 | CSIRT／初動対応                                 | 通報・分析・封じ込め・外部連携・事後対応の体制と実践。                                   |
-| 8   | [情報セキュリティ管理論](https://jocarium.productions/blog/sc_8)                 | ISMS／リスク管理／ガバナンス                    | PDCA、ポリシー策定、資産管理、脆弱性評価を含む統合管理枠組み。                           |
-| 9   | [法制度・ガイドライン論](https://jocarium.productions/blog/sc_9)                 | 法令遵守、各種ガイドライン                      | IPAガイドライン、不正アクセス禁止法、サイバーセキュリティ基本法、Pマーク制度等。         |
-| 10  | [クラウドセキュリティ特論](https://jocarium.productions/blog/sc_10)              | IAM／クラウド運用可視化                         | SaaS統制、CSPM、API管理、政府クラウド動向もカバー。                                      |
-| 11  | [サプライチェーン防衛論](https://jocarium.productions/blog/sc_11)                | 委託先／取引先のセキュリティ管理                | 製造・外注における契約・アクセス制御・監査等。                                           |
-| 12  | [ソフトウェア供給網管理論](https://jocarium.productions/blog/sc_12)              | SBOM／整合性検証                                | コンポーネント管理、バージョン検証、再配布可否等。                                       |
-| 13  | [次世代技術セキュリティ特論](https://jocarium.productions/blog/sc_13) | 生成AIのリスク／ゼロトラスト／PQCなどの先端領域 | LLMの誤生成、ZTA設計、量子耐性暗号、AIポリシー策定などを横断的にまとめて扱うのが効率的。 |
+| 章 | 対応ページ | テーマ | 学習配分 | 補足 |
+| --- | --- | --- | --- | --- |
+| 1 | [2026年度SC科目B 攻略ガイド](https://jocarium.productions/blog/sc_1) | 全体マップ | ― | 試験形式、出題傾向、重点5テーマ、問題選択の考え方。 |
+| 2 | [Webアプリ脆弱性とAPI認可](https://jocarium.productions/blog/sc_2) | 重点1 | 25% | IDOR/BOLA、XSS、CSRF、SSRF、CSP、Cookie、セッション管理、JWT。 |
+| 3 | [認証基盤・パスキー・OAuth/OIDC](https://jocarium.productions/blog/sc_3) | 重点2 | 20% | FIDO2/パスキー、OAuth・OIDC・PKCE、SAML、PKI、鍵管理。 |
+| 4 | [ネットワーク・通信基盤のセキュリティ](https://jocarium.productions/blog/sc_4) | 重点3 | 20% | DNS/DNSSEC/DoH、VPN、FWルール設計、TLS、SPF/DKIM/DMARC。 |
+| 5 | [ランサムウェア侵害とインシデント対応](https://jocarium.productions/blog/sc_5) | 重点4 | 20% | EDR、Windowsイベントログ、横展開、封じ込め、証拠保全。 |
+| 6 | [サプライチェーン・BCP・セキュリティ管理](https://jocarium.productions/blog/sc_6) | 重点5 | 15% | CI/CD・SBOM、脆弱性管理、リスク評価、委託先管理、BIA・RTO/RPO、バックアップ。 |
+| 7 | [横断領域 暗号・クラウド・法務](https://jocarium.productions/blog/sc_7) | 横断 | ― | 暗号の使い分け、クラウドIAM、ゼロトラスト、個人情報保護法の報告義務。 |
+| 8 | [複合シナリオ演習と記述答案](https://jocarium.productions/blog/sc_8) | 演習 | ― | 模擬シナリオ4題、記述答案の型、時間配分、直前チェックリスト。 |
 
 ## 主要情報セキュリティ資格の比較
 
