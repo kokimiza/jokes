@@ -5,7 +5,6 @@ import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import rehypeKatex from "rehype-katex";
-import rehypeMermaid from "rehype-mermaid";
 import remarkMath from "remark-math";
 
 export default defineConfig({
@@ -14,7 +13,7 @@ export default defineConfig({
 	},
 	markdown: {
 		remarkPlugins: [remarkMath],
-		rehypePlugins: [rehypeKatex, rehypeMermaid],
+		rehypePlugins: [rehypeKatex],
 		syntaxHighlight: {
 			type: "shiki",
 			excludeLangs: ["mermaid", "math"],
