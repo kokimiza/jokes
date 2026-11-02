@@ -3,24 +3,38 @@ import BookLayout from "../../layouts/BookLayout.astro";
 import { SC_BOOK, SC_CHAPTERS, chapterHref } from "../../lib/sc-book";
 const frontmatter = {
   title: SC_BOOK.title,
-  description: "知識を理解し、事例から根拠を探し、自分の言葉で答える。情報処理安全確保支援士試験のための、全8章のオンライン参考書。",
+  description: "2018〜2025年度の記述70問と採点講評を読み、分野ごとにまとめ直したオンラインの参考書。2026年度の出題予想と独自演習付き。",
   filename: "sc-index", time: 0, featured: false, timestamp: "2026-11-02T00:00:00+09:00",
 };
 ---
 
 <BookLayout frontmatter={frontmatter}>
-  <p class="book-cover-intro">用語を覚えた、その先へ。<br />構成図、コード、ログを読み解き、<br />根拠のある答案を書くための一冊。</p>
-  <div class="book-evidence" aria-label="過去問の分析範囲">
-    <p><strong>8</strong>年度の公式過去問</p><p><strong>15</strong>回の試験を確認</p><p><strong>70</strong>大問と本文を対応</p>
-  </div>
-  <p>2018〜2025年度の問題・解答を確認し、記述問題は出題趣旨・採点講評まで照合。知識の説明と実問の着眼点を、章ごとにつなぎました。科目Bを中心に、科目Aで補う範囲も示しています。</p>
-  <a class="book-start" href={chapterHref("sc_1")}>第1章から読みはじめる <span aria-hidden="true">→</span></a>
-  <h2>本書の構成</h2>
-  <ol class="book-chapter-grid">
-    {SC_CHAPTERS.map((chapter) => <li><a href={chapterHref(chapter.slug)}><small>CHAPTER {String(chapter.number).padStart(2, "0")}</small><h2>{chapter.title}</h2><p>{chapter.subtitle}</p></a></li>)}
+  <p>科目Bでは、構成図やコード、ログの中から根拠を見つけ、指定された字数で答える力が問われる。この本は、2018〜2025年度の問題冊子・解答例・採点講評を読み、つまずきやすい点を分野ごとにまとめたものである。各章の最初に、その分野の出題実績と次回の予想を置いた。</p>
+
+  <h2>2026年度の予想</h2>
+  <p>前期の科目Bは2026年11月11日〜23日、後期は2027年3月16日〜28日。予想の根拠は<a href={`${chapterHref("sc_1")}#3-2026年度の予想`}>第1章</a>にまとめた。</p>
+  <ul class="cover-forecast">
+    <li><b>◎</b>APIの認可不備やSSRFなど、コードを読むWeb問題</li>
+    <li><b>◎</b>パスキーなどフィッシングに強い認証と、OAuth／OIDC</li>
+    <li><b>◎</b>ランサムウェアの侵入から復旧まで</li>
+    <li><b>○</b>VPNからZTNA・SASEへの移行、クラウドのIAM、委託先の管理</li>
+  </ul>
+
+  <h2>目次</h2>
+  <ol class="cover-contents">
+    {SC_CHAPTERS.map((chapter) => (
+      <li>
+        <a href={chapterHref(chapter.slug)}>
+          <span class="cover-contents-number">第{chapter.number}章</span>
+          <span class="cover-contents-title">{chapter.title}</span>
+          <span class="cover-contents-sub">{chapter.subtitle}</span>
+        </a>
+      </li>
+    ))}
   </ol>
-  <h2>理解する。読み解く。書いて確かめる。</h2>
-  <p>各章の説明を読んだら、章末から実際の過去問へ進んでください。公式解答との違いを、知識不足・読み違い・答案の不足に分けて振り返ります。第8章には、解答の根拠を確かめる独自演習7題と、全70大問の索引を用意しました。</p>
-  <p>表示メニューから文字サイズ・書体・ページの色を変更できます。読書位置と読了記録は、お使いのブラウザーに保存されます。</p>
-  <p><a href="/sc/past-exam-map.csv">実問対応表 CSV</a> · <a href="/sc/source-manifest.csv">公式資料一覧 CSV</a> · <a href="/projects/sc-texts/">本書の対象範囲と出典</a></p>
+
+  <h2>使い方</h2>
+  <p>第1章で試験の形と予想を確かめてから、第2〜7章を必要なところから読む。各章の最後に、その章の内容で解ける過去問を挙げた。解いたら公式の解答例と採点講評を照らし合わせ、第8章の演習で答案の書き方を仕上げる。</p>
+  <p>本書の分析と演習は筆者が作ったもので、IPAの公式な解説や採点基準ではない。</p>
+  <p class="cover-links"><a href="/sc/past-exam-map.csv">記述70問の一覧（CSV）</a><a href="/sc/source-manifest.csv">参照した公式資料（CSV）</a><a href="/projects/sc-texts/">この本について・出典</a></p>
 </BookLayout>
