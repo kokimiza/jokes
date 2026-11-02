@@ -22,9 +22,9 @@ const rawSettings = readStorage("sc-reader-settings") as Partial<Preferences> | 
 const preferences: Preferences = {
   size: ["small", "standard", "large"].includes(rawSettings?.size ?? "") ? rawSettings!.size! : "standard",
   font: ["sans", "serif"].includes(rawSettings?.font ?? "") ? rawSettings!.font! : "sans",
-  theme: ["paper", "light", "dark"].includes(rawSettings?.theme ?? "") ? rawSettings!.theme! : "paper",
+  theme: ["paper", "light", "dark"].includes(rawSettings?.theme ?? "") ? rawSettings!.theme! : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "paper",
 };
-const sizeValues: Record<string, string> = { small: "1.0625rem", standard: "1.1875rem", large: "1.3125rem" };
+const sizeValues: Record<string, string> = { small: "1rem", standard: "1.125rem", large: "1.25rem" };
 function applyPreferences() {
   root.dataset.readerTheme = preferences.theme;
   root.dataset.readerFont = preferences.font;
@@ -64,11 +64,10 @@ function updateCompletion() {
     const mark = link.querySelector<HTMLElement>(".chapter-done");
     if (mark) mark.hidden = !progress.completed.includes(link.dataset.chapterLink!);
   }
-  for (const count of document.querySelectorAll("[data-completed-count]")) count.textContent = String(progress.completed.length);
   if (completion && current) {
     const completed = progress.completed.includes(current);
     completion.setAttribute("aria-pressed", String(completed));
-    completion.textContent = completed ? "読了済み ✓" : "読了にする ✓";
+    completion.textContent = completed ? "読了済み" : "読了にする";
   }
 }
 updateCompletion();
@@ -94,7 +93,7 @@ if (progress.last?.slug === current && !location.hash) {
   const resume = document.getElementById("resume-section");
   if (previousSection && notice && resume) {
     resume.setAttribute("href", `#${previousSection.id}`);
-    resume.textContent = `${previousSection.textContent} から再開 →`;
+    resume.textContent = `前回の続き：${previousSection.textContent}`;
     notice.hidden = false;
   }
 }
@@ -113,8 +112,6 @@ function updateReadingPosition(persist = false) {
   const percent = Math.round(ratio * 100);
   const bar = document.getElementById("reading-progress-bar");
   if (bar) bar.style.width = `${percent}%`;
-  const label = document.getElementById("reading-percent");
-  if (label) label.textContent = `${percent}%`;
   let active: HTMLElement | undefined;
   for (const heading of headings) {
     if (heading.getBoundingClientRect().top <= 160) active = heading;
@@ -162,7 +159,7 @@ prose?.querySelectorAll("table").forEach((table, index) => {
   tableRegions.push(region);
   const hint = document.createElement("p");
   hint.className = "table-hint";
-  hint.textContent = "横にスクロールして表を確認できます →";
+  hint.textContent = "表は横にスクロールできます";
   region.after(hint);
 });
 function updateTableOverflow() {

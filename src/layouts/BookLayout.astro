@@ -23,7 +23,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://jocarium.pr
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={frontmatter.description} />
-    <meta name="theme-color" content="#f5f4ee" />
+    <meta name="theme-color" content="#f3f0e8" />
     <title>{chapter ? `第${chapter.number}章 ${chapter.title}｜${SC_BOOK.title}` : SC_BOOK.title}</title>
     <meta property="og:type" content="article" />
     <meta property="og:title" content={`${frontmatter.title}｜${SC_BOOK.title}`} />
@@ -32,12 +32,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://jocarium.pr
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script is:inline>
-      // Apply preferences before paint; reading also works when storage is unavailable.
+      // Apply preferences before paint; without a saved theme, follow the OS.
       try {
         const preferences = JSON.parse(localStorage.getItem("sc-reader-settings") || "{}");
-        if (["paper", "light", "dark"].includes(preferences.theme)) document.documentElement.dataset.readerTheme = preferences.theme;
+        const theme = ["paper", "light", "dark"].includes(preferences.theme) ? preferences.theme : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "paper";
+        document.documentElement.dataset.readerTheme = theme;
         if (["sans", "serif"].includes(preferences.font)) document.documentElement.dataset.readerFont = preferences.font;
-        const sizes = { small: "1.0625rem", standard: "1.1875rem", large: "1.3125rem" };
+        const sizes = { small: "1rem", standard: "1.125rem", large: "1.25rem" };
         if (Object.hasOwn(sizes, preferences.size)) document.documentElement.style.setProperty("--reader-font-size", sizes[preferences.size]);
       } catch {}
     </script>
@@ -46,78 +47,72 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://jocarium.pr
     <a class="skip-link" href="#book-content">本文へ移動</a>
     <div class="reading-progress" aria-hidden="true"><span id="reading-progress-bar"></span></div>
     <header class="book-topbar">
-      <a class="book-brand" href={SC_BOOK.home} aria-label={`${SC_BOOK.title} 全体目次`}>
-        <span class="book-emblem" aria-hidden="true">SC</span>
-        <span>情報処理安全確保<small>実践テキスト <span class="edition">2026</span></small></span>
+      <a class="book-brand" href={SC_BOOK.home} aria-label={`${SC_BOOK.title} 目次へ`}>
+        <span class="book-emblem" aria-hidden="true">支</span>
+        <span>情報処理安全確保支援士<small>科目Bテキスト {SC_BOOK.edition}</small></span>
       </a>
-      <div class="topbar-context">{chapter ? `第${chapter.number}章 / 全8章` : "全8章・過去8年度を読む"}</div>
       <div class="reader-actions" data-js-only>
-        <span id="reading-percent" class="reading-percent" aria-label="この章の読書進度">0%</span>
         <details class="reader-settings">
-          <summary aria-label="読みやすさの設定"><span aria-hidden="true">Aa</span> 表示</summary>
+          <summary aria-label="表示の設定">表示</summary>
           <div class="settings-panel">
-            <p class="settings-title">読みやすさを調整</p>
-            <label for="reader-size">文字サイズ</label>
-            <select id="reader-size"><option value="small">小さめ</option><option value="standard" selected>標準</option><option value="large">大きめ</option></select>
+            <label for="reader-size">文字の大きさ</label>
+            <select id="reader-size"><option value="small">小</option><option value="standard" selected>中</option><option value="large">大</option></select>
             <label for="reader-font">本文の書体</label>
             <select id="reader-font"><option value="sans">ゴシック</option><option value="serif">明朝</option></select>
-            <label for="reader-theme">ページの色</label>
-            <select id="reader-theme"><option value="paper">ペーパー</option><option value="light">ホワイト</option><option value="dark">ダーク</option></select>
+            <label for="reader-theme">背景</label>
+            <select id="reader-theme"><option value="paper">紙</option><option value="light">白</option><option value="dark">黒</option></select>
             <button class="print-button" type="button" id="book-print">この章を印刷</button>
-            <small>表示設定と読書位置は、このブラウザーに保存されます。</small>
           </div>
         </details>
       </div>
     </header>
 
     <div class:list={["book-shell", { "book-cover-shell": !chapter }]}>
-      <aside class="book-sidebar" aria-label="本の章一覧">
-        <div class="sidebar-heading"><span>CONTENTS</span><span>全8章</span></div>
+      <aside class="book-sidebar" aria-label="章の一覧">
+        <p class="sidebar-heading">目次</p>
         <nav aria-label="章の目次"><ChapterList current={chapter?.slug} /></nav>
         <div class="sidebar-foot">
-          <p><span data-completed-count>0</span> / 8 章 読了</p>
-          <a data-resume-link href={chapterHref("sc_1")} hidden>続きから読む <span aria-hidden="true">↗</span></a>
-          <a href="/projects/sc-texts/">教材について・出典</a>
-          <a href="/">Jocarium ホームへ</a>
+          <a data-resume-link href={chapterHref("sc_1")} hidden>前回の続きから読む</a>
+          <a href="/projects/sc-texts/">この本について・出典</a>
+          <a href="/">Jocarium</a>
         </div>
       </aside>
 
       <main class="book-main" id="book-content" tabindex="-1">
         <div class="mobile-navigation">
-          <details><summary>全体目次 <span>{chapter ? `第${chapter.number}章を読んでいます` : "全8章"}</span></summary><nav aria-label="モバイルの章の目次"><ChapterList current={chapter?.slug} /></nav></details>
-          {headings.length > 0 && <details><summary>この章の目次 <span>節へ移動</span></summary><nav aria-label="モバイルの節の目次"><SectionList headings={headings} /></nav></details>}
+          <details><summary>目次 <span>{chapter ? `第${chapter.number}章` : "全8章"}</span></summary><nav aria-label="章の目次（モバイル）"><ChapterList current={chapter?.slug} /></nav></details>
+          {headings.length > 0 && <details><summary>この章の節 <span>移動</span></summary><nav aria-label="節の目次（モバイル）"><SectionList headings={headings} /></nav></details>}
         </div>
 
         <article class="book-article">
           <header class="chapter-header">
-            <div class="chapter-kicker"><span>{chapter ? `CHAPTER ${String(chapter.number).padStart(2, "0")}` : "INFORMATION SECURITY"}</span><span>{SC_BOOK.edition}</span></div>
+            {chapter && <p class="chapter-kicker">第{chapter.number}章</p>}
             <h1>{frontmatter.title}</h1>
             <p class="chapter-description">{frontmatter.description}</p>
-            <div class="chapter-meta"><span>2018—2025 過去問分析版</span><span>改訂 <time datetime={SC_BOOK.revised}>2026.11.02</time></span></div>
           </header>
 
           <div class="resume-notice" id="resume-notice" hidden>
-            <div><small>前回の読書位置</small><a id="resume-section" href="#book-content">続きから読む</a></div>
-            <button type="button" id="dismiss-resume" aria-label="読書位置の案内を閉じる">×</button>
+            <a id="resume-section" href="#book-content">前回の続きから読む</a>
+            <button type="button" id="dismiss-resume" aria-label="閉じる">×</button>
           </div>
 
           <div class="book-prose" id="book-prose"><slot /></div>
 
           {chapter && <footer class="chapter-footer">
-            <div class="chapter-completion" data-js-only><div><small>CHAPTER {String(chapter.number).padStart(2, "0")}</small><p>この章の学習を記録する</p></div><button type="button" id="chapter-complete" aria-pressed="false">読了にする <span aria-hidden="true">✓</span></button></div>
-            <nav class="chapter-pagination" aria-label="前後の章へ">
-              <a href={previous ? chapterHref(previous.slug) : SC_BOOK.home}><small>← {previous ? `第${previous.number}章` : "全体目次"}</small><span>{previous?.title ?? "本の目次へ戻る"}</span></a>
-              {next ? <a href={chapterHref(next.slug)}><small>第{next.number}章 →</small><span>{next.title}</span></a> : <a href={SC_BOOK.home}><small>学習を振り返る →</small><span>全体目次へ</span></a>}
+            <div class="chapter-completion" data-js-only><p>この章を読み終えたら記録する</p><button type="button" id="chapter-complete" aria-pressed="false">読了にする</button></div>
+            <nav class="chapter-pagination" aria-label="前後の章">
+              <a href={previous ? chapterHref(previous.slug) : SC_BOOK.home}><small>{previous ? `← 第${previous.number}章` : "← 目次"}</small><span>{previous?.title ?? "目次へ戻る"}</span></a>
+              {next ? <a href={chapterHref(next.slug)}><small>第{next.number}章 →</small><span>{next.title}</span></a> : <a href={SC_BOOK.home}><small>目次 →</small><span>目次へ戻る</span></a>}
             </nav>
           </footer>}
-          <p class="book-colophon">情報処理安全確保 実践テキスト <span>Yu Tokunaga</span></p>
+          <p class="book-colophon">改訂 <time datetime={SC_BOOK.revised}>2026年11月2日</time> ・ Yu Tokunaga</p>
         </article>
       </main>
 
-      {headings.length > 0 && <aside class="book-toc" aria-label="この章の目次">
-        <p class="toc-heading">この章の目次</p>
+      {headings.length > 0 && <aside class="book-toc" aria-label="この章の節">
+        <p class="toc-heading">この章の節</p>
         <nav aria-label="節の目次"><SectionList headings={headings} /></nav>
-        <a class="back-to-top" href="#book-content">章のはじめへ ↑</a>
+        <a class="back-to-top" href="#book-content">章の先頭へ ↑</a>
       </aside>}
     </div>
     <div class="reader-announcement" role="status" aria-live="polite" id="reader-announcement"></div>
