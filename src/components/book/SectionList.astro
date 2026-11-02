@@ -1,0 +1,14 @@
+---
+interface Props {
+  headings: { depth: number; slug: string; text: string }[];
+}
+const { headings } = Astro.props;
+---
+
+<ol class="section-list">
+  {headings.filter((heading) => heading.depth === 2 || heading.depth === 3).map((heading) => (
+    <li class:list={[{ "section-nested": heading.depth === 3 }]}>
+      <a href={`#${heading.slug}`} data-section-link={heading.slug}>{heading.text}</a>
+    </li>
+  ))}
+</ol>

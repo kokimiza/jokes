@@ -1,0 +1,19 @@
+---
+import { SC_CHAPTERS, chapterHref } from "../../lib/sc-book";
+interface Props { current?: string; }
+const { current } = Astro.props;
+---
+
+<ol class="chapter-list">
+  {SC_CHAPTERS.map((chapter, index) => (
+    <li>
+      {(index === 0 || chapter.group !== SC_CHAPTERS[index - 1].group) &&
+        <p class="chapter-group">{chapter.group}</p>}
+      <a href={chapterHref(chapter.slug)} aria-current={current === chapter.slug ? "page" : undefined} data-chapter-link={chapter.slug}>
+        <span class="chapter-number">{String(chapter.number).padStart(2, "0")}</span>
+        <span>{chapter.title}<small>{chapter.subtitle}</small></span>
+        <span class="chapter-done" aria-label="読了" hidden>✓</span>
+      </a>
+    </li>
+  ))}
+</ol>
