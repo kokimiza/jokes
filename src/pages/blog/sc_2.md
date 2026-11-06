@@ -1,7 +1,7 @@
 ---
 layout: ../../layouts/BookLayout.astro
 title: WebアプリとAPIの脆弱性
-description: 新形式6回すべてに出ているアプリの問題。認可不備、インジェクション、XSS・CSRF・CSP、SSRF、JWTを、コードのどこに何が欠けているかという見方でまとめる。
+description: 新形式5回に含まれるアプリ関連の問題。認可不備、インジェクション、XSS・CSRF・CSP、SSRF、JWTを、コードのどこに何が欠けているかという見方でまとめる。
 tags: ["SC", "科目B", "Webアプリセキュリティ"]
 time: 30
 featured: false
