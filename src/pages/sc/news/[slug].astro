@@ -38,8 +38,10 @@ function vertical(html: string) {
 const body = vertical((await page.compiledContent())
   .replace(/(<h2[^>]*>)(\d+)\.\s*/g, '$1<span class="news-no">第$2節</span>')
   .replace(/(<h3[^>]*>)\d+\.\d+\s*/g, "$1")
-  .replaceAll("<table>", '<div class="news-table"><table>')
-  .replaceAll("</table>", "</table></div>")
+  // A vertical float lets text run under the figure; a horizontal float would spill across pages.
+  .replace(/<pre[\s\S]*?<\/pre>/g, (pre) => `<div class="news-figure">${pre}</div>`)
+  .replaceAll("<table>", '<div class="news-figure"><div class="news-table"><table>')
+  .replaceAll("</table>", "</table></div></div>")
   .replace(/href="\/blog\/(sc_[1-8])\/?/g, 'href="/sc/news/$1/'));
 
 // 図解の数字は記述70問の一覧から作る。1問が複数の章にまたがることがある。
