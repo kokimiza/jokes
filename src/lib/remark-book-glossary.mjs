@@ -11,7 +11,7 @@ const excluded = new Set(["heading", "link", "linkReference", "code", "inlineCod
 export default function remarkBookGlossary() {
   return (tree, file) => {
     const frontmatter = file.data.astro?.frontmatter;
-    const match = /^sc_([1-8])$/.exec(frontmatter?.filename ?? "");
+    const match = /^sc_([1-9])$/.exec(frontmatter?.filename ?? "");
     if (!match) return;
     const chapter = Number(match[1]);
     const aliases = new Map();
