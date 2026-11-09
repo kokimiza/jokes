@@ -190,9 +190,9 @@
   .news-page { position: relative; width: 100%; height: var(--sheet-height); margin: 32px 0 42px; writing-mode: vertical-rl; counter-increment: news-sheet; }
   .news-page + .news-page { margin-block-start: 0; }
   .news-page::before { content: "支援士新聞　／　" counter(news-sheet, decimal-leading-zero); position: absolute; top: -26px; right: 0; left: 0; padding-top: 4px; border-top: 1px solid var(--book-rule); color: var(--book-muted); font: 10px/1.5 var(--book-sans); letter-spacing: .08em; text-align: right; writing-mode: horizontal-tb; }
-  .news-page { overflow: visible; }
+  .news-page { overflow: clip; overflow-clip-margin: 26px; }
   .news-body h2 { font-size: 1.3em; }
-  .news-body pre, .news-table { max-width: calc(100vw - 56px); }
+  .news-body pre, .news-table { max-width: min(calc(100vw - 56px), 610px); }
   .news-body pre { padding: 10px; }
   .news-table th, .news-table td { padding-right: 8px; }
   .news-paper .chapter-glossary { margin-top: 0; padding: 12px; }
