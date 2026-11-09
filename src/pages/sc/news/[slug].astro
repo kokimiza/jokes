@@ -115,7 +115,6 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
 
       <header class="news-hero">
         <p class="news-kicker" set:html={vertical(`${chapter.group}　第${chapter.number}章`)} />
-        <p class="news-deck" set:html={vertical(escapeHTML(frontmatter.description))} />
         <h1 set:html={vertical(escapeHTML(frontmatter.title))} />
         <p class="news-sub" set:html={vertical(escapeHTML(chapter.subtitle))} />
       </header>
@@ -162,11 +161,10 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
       const bar = document.getElementById("reading-progress-bar");
       const back = document.querySelector<HTMLButtonElement>('[data-turn="back"]')!;
       const forward = document.querySelector<HTMLButtonElement>('[data-turn="forward"]')!;
-      const compact = matchMedia("(max-width: 900px)");
       const behavior: ScrollBehavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
       const page = () => paper.clientWidth * 0.85;
-      const end = () => compact.matches ? paper.scrollHeight - paper.clientHeight : paper.scrollWidth - paper.clientWidth;
-      const position = () => compact.matches ? paper.scrollTop : -paper.scrollLeft;
+      const end = () => paper.scrollWidth - paper.clientWidth;
+      const position = () => -paper.scrollLeft;
       document.documentElement.classList.add("js-ready");
 
       // 紙面割り：本文を一頁ずつの箱（段組み）へ流し込み、溢れた段落や箇条書きは文字の位置で二つに割る。
@@ -178,23 +176,35 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
       const range = document.createRange();
       const splittable = "p, ul, ol, blockquote, details[open], .details-cont";
 
-      // A block overflows when some of its text was pushed into a tier below the page.
-      function overflows(block: Element, limit: number) {
-        range.selectNodeContents(block);
-        return Array.from(range.getClientRects()).some((rect) => rect.height > 0 && rect.top >= limit);
+      // Overflow tiers land below the page in Chromium; checking the left edge too covers engines that place them elsewhere.
+      const outside = (rect: DOMRect, box: DOMRect) => rect.top >= box.bottom - 1 || rect.right <= box.left + 1;
+      // Figures scroll inside their own box, so their hidden rows are judged by the box, not by the text.
+      // A closed answer still reports boxes for its hidden text; only the summary counts.
+      const hidden = (element: Element | null) => !!element?.closest("details:not([open]) > :not(summary)");
+      function overflows(block: Element, box: DOMRect) {
+        const figures = Array.from(block.matches(".news-figure") ? [block] : block.querySelectorAll(".news-figure"));
+        if (figures.some((figure) => !hidden(figure) && outside(figure.getBoundingClientRect(), box))) return true;
+        const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          if (node.parentElement?.closest(".news-figure") || hidden(node.parentElement)) continue;
+          range.selectNodeContents(node);
+          if (Array.from(range.getClientRects()).some((rect) => rect.height > 0 && outside(rect, box))) return true;
+        }
+        return false;
       }
 
-      function split(block: HTMLElement, limit: number): [HTMLElement, HTMLElement] | null {
+      function split(block: HTMLElement, box: DOMRect): [HTMLElement, HTMLElement] | null {
         const chars: [Text, number][] = [];
         const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
         for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
+          if (node.parentElement?.closest(".news-figure")) continue;
           if (node.parentElement?.closest(".tcy, summary")) { if (node.data.trim()) chars.push([node, 0]); continue; }
           for (let i = 0; i < node.data.length; i++) if (node.data[i].trim()) chars.push([node, i]);
         }
         const fits = ([node, offset]: [Text, number]) => {
           range.setStart(node, offset);
           range.setEnd(node, offset + 1);
-          return range.getBoundingClientRect().top < limit;
+          return !outside(range.getBoundingClientRect(), box);
         };
         let low = 0;
         let high = chars.length;
@@ -235,7 +245,7 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
       function fillPage(queue: HTMLElement[]) {
         const sheet = flow.appendChild(document.createElement("div"));
         sheet.className = "news-page";
-        const limit = sheet.getBoundingClientRect().bottom - 1;
+        const box = sheet.getBoundingClientRect();
         const columns = getComputedStyle(sheet);
         const tiers = Number.parseInt(columns.columnCount, 10) || 1;
         const tier = (sheet.clientHeight - (tiers - 1) * Number.parseFloat(columns.columnGap)) / tiers;
@@ -256,7 +266,7 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
               figure.style.height = `${tier - 1}px`;
             }
           }
-          const over = Array.from(sheet.children).find((child) => overflows(child, limit)) as HTMLElement | undefined;
+          const over = Array.from(sheet.children).find((child) => overflows(child, box)) as HTMLElement | undefined;
           if (!over) {
             if (queue.length && !blocked()) continue;
             break;
@@ -271,13 +281,13 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
             deferred.push(over);
             continue;
           }
-          const parts = over.matches(splittable) ? split(over, limit) : null;
+          const parts = over.matches(splittable) ? split(over, box) : null;
           if (parts) {
             over.replaceWith(parts[0]);
             queue.unshift(parts[1]);
             // Splitting a nested list or answer can change its line breaks.
             // Check the resulting box again before accepting this page.
-            if (overflows(parts[0], limit)) continue;
+            if (overflows(parts[0], box)) continue;
           } else if (over !== sheet.firstElementChild) {
             over.remove();
             queue.unshift(over);
@@ -295,7 +305,7 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
 
       function paginate(anchor?: HTMLElement) {
         const key = anchor?.dataset.answer;
-        const edge = (element: Element) => compact.matches ? element.getBoundingClientRect().top : element.getBoundingClientRect().right;
+        const edge = (element: Element) => element.getBoundingClientRect().right;
         const before = anchor ? edge(anchor) : 0;
         const read = end() > 0 ? position() / end() : 0;
         const queue = blocks.map((block) => block.cloneNode(true) as HTMLElement);
@@ -303,9 +313,7 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
         while (queue.length) fillPage(queue);
         flow.dataset.paged = "";
         const again = key === undefined ? null : flow.querySelector(`[data-answer="${key}"]`);
-        if (compact.matches) paper.scrollTop = again ? paper.scrollTop + edge(again) - before : read * end();
-        else paper.scrollLeft = again ? paper.scrollLeft + edge(again) - before : -read * end();
-        paper.setAttribute("aria-label", compact.matches ? "紙面。各段を右から左へ、紙面を上から下へ読みます" : "紙面。右から左へ読みます");
+        paper.scrollLeft = again ? paper.scrollLeft + edge(again) - before : -read * end();
         update();
       }
 
@@ -369,12 +377,11 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
         return !!box && box.scrollHeight > box.clientHeight;
       };
       paper.addEventListener("wheel", (event) => {
-        if (compact.matches || event.ctrlKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY) || inScroller(event.target)) return;
+        if (event.ctrlKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY) || inScroller(event.target)) return;
         event.preventDefault();
         paper.scrollLeft -= event.deltaY * (event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? page() : 1);
       }, { passive: false });
       document.addEventListener("keydown", (event) => {
-        if (compact.matches) return;
         const target = event.target instanceof Element ? event.target : null;
         if (event.altKey || event.ctrlKey || event.metaKey || target?.closest("input, select, textarea, pre, .news-table, .term-popover")) return;
         if (event.key === " " && target?.closest("a, button, summary")) return;
