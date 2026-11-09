@@ -4,9 +4,10 @@ import type { ArticleFrontmatter } from "../lib/types";
 import { SC_BOOK, SC_CHAPTERS, chapterHref } from "../lib/sc-book";
 import ChapterList from "../components/book/ChapterList.astro";
 import SectionList from "../components/book/SectionList.astro";
+import TermNotes from "../components/book/TermNotes.astro";
 import "../styles/book.css";
 
-type Props = Pick<MarkdownLayoutProps<ArticleFrontmatter>, "frontmatter"> & {
+type Props = Pick<MarkdownLayoutProps<ArticleFrontmatter & { bookGlossary?: string[] }>, "frontmatter"> & {
   headings?: { depth: number; slug: string; text: string }[];
 };
 const { frontmatter, headings = [] } = Astro.props;
@@ -89,7 +90,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://jocarium.pr
             {chapter && <p class="chapter-kicker">第{chapter.number}章</p>}
             <h1>{frontmatter.title}</h1>
             <p class="chapter-description">{frontmatter.description}</p>
+            {chapter && <details class="chapter-guide">
+              <summary>はじめて読むときの道順</summary>
+              <p>{chapter.guide}</p>
+            </details>}
           </header>
+
+          {frontmatter.bookGlossary?.length && <p class="term-help"><span aria-hidden="true">?</span> 点線の用語をタップすると、短い説明が開きます。</p>}
 
           <div class="resume-notice" id="resume-notice" hidden>
             <a id="resume-section" href="#book-content">前回の続きから読む</a>
@@ -97,6 +104,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://jocarium.pr
           </div>
 
           <div class="book-prose" id="book-prose"><slot /></div>
+          <TermNotes ids={frontmatter.bookGlossary ?? []} />
 
           {chapter && <footer class="chapter-footer">
             <div class="chapter-completion" data-js-only><p>この章を読み終えたら記録する</p><button type="button" id="chapter-complete" aria-pressed="false">読了にする</button></div>
@@ -105,7 +113,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://jocarium.pr
               {next ? <a href={chapterHref(next.slug)}><small>第{next.number}章 →</small><span>{next.title}</span></a> : <a href={SC_BOOK.home}><small>目次 →</small><span>目次へ戻る</span></a>}
             </nav>
           </footer>}
-          <p class="book-colophon">改訂 <time datetime={SC_BOOK.revised}>2026年11月2日</time> ・ Yu Tokunaga</p>
+          <p class="book-colophon">改訂 <time datetime={SC_BOOK.revised}>{SC_BOOK.revised.replace(/(\d+)-(\d+)-(\d+)/, (_, y, m, d) => `${y}年${Number(m)}月${Number(d)}日`)}</time> ・ Yu Tokunaga</p>
         </article>
       </main>
 
@@ -117,5 +125,6 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://jocarium.pr
     </div>
     <div class="reader-announcement" role="status" aria-live="polite" id="reader-announcement"></div>
     <script src="../scripts/book-reader.ts"></script>
+    <script src="../scripts/book-terms.ts"></script>
   </body>
 </html>
