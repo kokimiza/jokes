@@ -66,7 +66,7 @@
 .news-page + .news-page { margin-block-start: 2.5em; }
 .news-page > :first-child { margin-block-start: 0; }
 .news-body p.cont { text-indent: 0; }
-.news-body li.cont { list-style-type: none; }
+.news-body li.cont { list-style-type: none; padding-inline-start: 0; text-indent: 0; }
 .news-body p { margin: 0; text-indent: 1em; }
 .news-body .news-lead { margin-block-end: .7em; padding-block-end: .7em; border-block-end: 1px solid var(--book-border); font-family: var(--book-sans); font-weight: 700; text-indent: 0; }
 .news-guide { display: block; margin-block-end: 1em; padding: .7em .55em; border: 1px solid var(--book-rule); font-size: .9em; line-height: 1.7; break-inside: avoid; }
@@ -84,11 +84,14 @@
 .news-body strong { font-family: var(--book-sans); font-weight: 700; }
 .news-body a { color: var(--book-link); text-decoration-thickness: 1px; text-underline-offset: .2em; }
 .news-body code { padding: 0 .15em; background: var(--book-note); font: .86em var(--book-mono); }
-.news-body ul, .news-body ol { margin-block: .3em; margin-inline: 0; padding-inline-start: 1.1em; }
-.news-body ol { padding-inline-start: 2.2em; list-style-type: cjk-decimal; }
+/* 番号は行の中に置き、図の下へ回り込んでも重ならないようにする。二行目以降はぶら下げる。 */
+.news-body ul, .news-body ol { margin-block: .3em; margin-inline: 0; padding: 0; list-style-position: inside; }
+.news-body li { --hang: 1em; padding-inline-start: var(--hang); text-indent: calc(-1 * var(--hang)); }
+.news-body ol > li { --hang: 2em; }
+.news-body ol { list-style-type: cjk-decimal; }
 .news-body ul { list-style-type: "・"; }
 .news-body li::marker { color: var(--book-accent); }
-.news-body li p { text-indent: 0; }
+.news-body li > :is(p, ul, ol, details, .news-figure) { text-indent: 0; }
 .news-body hr { margin-block: 1em; margin-inline: 0; border: 0; border-block-start: 1px solid var(--book-border); }
 .news-body blockquote { margin-block: .8em; margin-inline: 0; padding: .6em .5em; background: var(--book-note); font-size: .94em; }
 .news-body details { margin-block: .8em; padding: .5em .45em; border: 1px solid var(--book-border); border-block-start: 3px solid var(--book-accent); }
