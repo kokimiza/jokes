@@ -104,6 +104,10 @@
 .news-figure.full { display: flex; justify-content: center; margin-bottom: 0; }
 /* 行が図をまたいでしまうブラウザーでは、図に一段を丸ごと与えて中央に置く。 */
 .figures-inline .news-figure { float: none; display: flex; justify-content: center; margin: 0 .6em; }
+.news-panel { display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 16px; margin-block-start: 2.5em; padding: 0 12px; border-block: 1px solid var(--book-border); }
+.news-panel + .news-page { margin-block-start: 2.5em; }
+.news-panel .news-figure { margin: 0; }
+.news-panel :is(pre, .news-table) { max-height: calc(100dvh - var(--frame)); }
 .news-body pre, .news-table { width: fit-content; max-width: min(36em, calc(100vw - 100px)); max-height: calc(var(--tier) - 4px); margin: 0; overflow: auto; writing-mode: horizontal-tb; }
 .news-body pre { max-width: min(46em, calc(100vw - 100px)); padding: 12px 14px; border-radius: 3px; font-size: .78em; line-height: 1.6; tab-size: 2; }
 .news-body pre code { padding: 0; background: none; font-size: 1em; }
@@ -160,5 +164,5 @@
 /* 指で送るときは、頁の切れ目で止める。 */
 @media (max-width: 600px) and (pointer: coarse) {
   .news-paper { scroll-snap-type: x mandatory; }
-  .news-masthead, .news-hero, .news-graphics, .news-page, .chapter-glossary, .news-end { scroll-snap-align: start; }
+  .news-masthead, .news-hero, .news-graphics, .news-page, .news-panel, .chapter-glossary, .news-end { scroll-snap-align: start; }
 }
