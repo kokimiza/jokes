@@ -303,14 +303,39 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
         queue.unshift(...deferred);
       }
 
+      // Some engines let vertical lines run across a floated horizontal figure. Detect it from the real layout.
+      function crossed() {
+        for (const figure of flow.querySelectorAll<HTMLElement>(".news-figure")) {
+          if (hidden(figure)) continue;
+          const area = figure.getBoundingClientRect();
+          const walker = document.createTreeWalker(figure.closest(".news-page") ?? flow, NodeFilter.SHOW_TEXT);
+          for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            if (node.parentElement?.closest(".news-figure") || hidden(node.parentElement)) continue;
+            range.selectNodeContents(node);
+            for (const rect of range.getClientRects()) {
+              if (rect.width > 0 && rect.right > area.left + 1 && rect.left < area.right - 1 && rect.bottom > area.top + 1 && rect.top < area.bottom - 1) return true;
+            }
+          }
+        }
+        return false;
+      }
+
       function paginate(anchor?: HTMLElement) {
         const key = anchor?.dataset.answer;
         const edge = (element: Element) => element.getBoundingClientRect().right;
         const before = anchor ? edge(anchor) : 0;
         const read = end() > 0 ? position() / end() : 0;
-        const queue = blocks.map((block) => block.cloneNode(true) as HTMLElement);
-        flow.replaceChildren();
-        while (queue.length) fillPage(queue);
+        const layout = () => {
+          const queue = blocks.map((block) => block.cloneNode(true) as HTMLElement);
+          flow.replaceChildren();
+          while (queue.length) fillPage(queue);
+        };
+        layout();
+        // There, give each figure a tier of its own instead of wrapping text under it.
+        if (!flow.classList.contains("figures-inline") && crossed()) {
+          flow.classList.add("figures-inline");
+          layout();
+        }
         flow.dataset.paged = "";
         const again = key === undefined ? null : flow.querySelector(`[data-answer="${key}"]`);
         paper.scrollLeft = again ? paper.scrollLeft + edge(again) - before : -read * end();
