@@ -50,15 +50,17 @@ if (popup && typeof popup.showPopover === "function") {
   for (const link of document.querySelectorAll<HTMLAnchorElement>("#book-prose a[data-book-term]")) {
     const entry = document.getElementById(`glossary-${link.dataset.bookTerm}`);
     if (!entry) continue;
+    const label = link.textContent ?? "";
     const button = document.createElement("button");
     button.type = "button";
     button.className = "term-ref";
-    button.textContent = link.textContent;
+    // Keep inline markup such as upright letters in the newspaper view.
+    button.append(...link.childNodes);
     button.dataset.bookTerm = link.dataset.bookTerm;
     button.setAttribute("aria-haspopup", "dialog");
     button.setAttribute("aria-controls", "term-popover");
     button.setAttribute("aria-expanded", "false");
-    button.setAttribute("aria-label", `${link.textContent}の意味`);
+    button.setAttribute("aria-label", `${label}の意味`);
     link.replaceWith(button);
 
     button.addEventListener("click", (event) => {
