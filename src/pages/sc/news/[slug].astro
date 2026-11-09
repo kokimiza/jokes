@@ -251,11 +251,17 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
         const tier = (sheet.clientHeight - (tiers - 1) * Number.parseFloat(columns.columnGap)) / tiers;
         const room = 6 * Number.parseFloat(getComputedStyle(flow).fontSize);
         const deferred: HTMLElement[] = [];
+        // Where text cannot wrap under figures, figures leave the tiers and follow the page in a panel of their own.
+        const panels = flow.classList.contains("figures-inline");
         // Figures that miss the page wait for the next one while text fills the gap, but never past a new section.
-        const blocked = () => deferred.length > 0 && queue[0]?.matches("h2");
+        const blocked = () => !panels && deferred.length > 0 && queue[0]?.matches("h2");
         for (;;) {
           for (let budget = 0; queue.length && budget < 1600 && !blocked();) {
             const block = queue.shift()!;
+            if (panels && block.matches(".news-figure")) {
+              deferred.push(block);
+              continue;
+            }
             sheet.append(block);
             budget += (block.textContent?.length ?? 0) + 40;
           }
@@ -300,7 +306,13 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
           last.remove();
           queue.unshift(last);
         }
-        queue.unshift(...deferred);
+        if (!sheet.childElementCount) sheet.remove();
+        if (!panels) queue.unshift(...deferred);
+        else if (deferred.length) {
+          const panel = flow.appendChild(document.createElement("div"));
+          panel.className = "news-panel";
+          panel.append(...deferred);
+        }
       }
 
       // Some engines let vertical lines run across a floated horizontal figure. Detect it from the real layout.
@@ -363,7 +375,7 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
       function turn(direction: 1 | -1) {
         const view = paper.getBoundingClientRect();
         const start = view.right - Number.parseFloat(getComputedStyle(paper).paddingRight);
-        const sheets = Array.from(paper.querySelectorAll<HTMLElement>(":scope > :not(.news-body), .news-page"));
+        const sheets = Array.from(paper.querySelectorAll<HTMLElement>(":scope > :not(.news-body), .news-page, .news-panel"));
         const shifts = sheets.map((sheet) => sheet.getBoundingClientRect().right - start);
         let shift: number | undefined;
         if (direction > 0) {
