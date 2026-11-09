@@ -1,0 +1,133 @@
+/* 新聞の紙面。縦書きで段を組み、右から左へ送る。色と文字の大きさは本の設定を引き継ぐ。 */
+:root[data-reader-theme="paper"] .news { --book-paper: #f6f2e7; }
+.news { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.news .book-topbar { position: static; flex: none; padding: 0 24px; }
+.news .reading-progress span { margin-left: auto; }
+.news .tcy { text-combine-upright: all; }
+.news .upright { text-orientation: upright; }
+
+.news-pages { display: flex; gap: 2px; min-width: 0; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+.news-pages a { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 3px; color: var(--book-muted); font: 700 14px var(--book-serif); text-decoration: none; }
+.news-pages a:hover { background: var(--book-paper); color: var(--book-ink); }
+.news-pages a[aria-current="page"] { background: var(--book-ink); color: var(--book-paper); }
+
+/* 紙面全体。子要素は右から左へ積まれる。 */
+.news-paper { flex: 1; min-height: 0; width: 100%; padding: 24px 32px; overflow: auto hidden; overscroll-behavior-x: contain; scroll-padding: 0 40px; writing-mode: vertical-rl; background: var(--book-paper); font-family: var(--book-serif); scrollbar-width: thin; }
+.news-paper:focus { outline: none; }
+
+/* 題字と目次 */
+.news-masthead { display: flex; gap: 14px; margin-block-end: 22px; padding-block-end: 20px; border-block-end: 3px double var(--book-rule); font-family: var(--book-sans); }
+.news-title { display: flex; flex: none; align-items: center; justify-content: center; margin: 0; padding: 20px 12px; background: var(--book-accent); color: var(--book-paper); box-shadow: inset 0 0 0 4px var(--book-accent), inset 0 0 0 5px var(--book-paper); font: 900 clamp(30px, 6dvh, 50px)/1 var(--book-serif); letter-spacing: .16em; }
+.news-dateline { flex: none; margin: 0; color: var(--book-muted); font-size: 12px; line-height: 1.7; }
+.news-folio { flex: none; margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .1em; }
+.news-index { margin-inline-start: auto; font-size: 13px; line-height: 1.75; }
+.news-index > p { margin: 0 0 0 6px; padding: 6px 0; background: var(--book-ink); color: var(--book-paper); font-weight: 700; text-align: center; letter-spacing: .1em; }
+.news-index ol { margin: 0; padding: 0; list-style: none; }
+.news-index a { text-decoration: none; }
+.news-index a:hover { color: var(--book-link); text-decoration: underline; }
+
+/* トップ記事のデカ見出し */
+.news-hero { margin-block-end: 22px; padding-block-end: 22px; border-block-end: 1px solid var(--book-rule); font-family: var(--book-sans); }
+.news-kicker { margin: 0 0 0 10px; color: var(--book-accent); font-size: 15px; font-weight: 700; letter-spacing: .12em; }
+.news-hero h1 { margin: 0; font-size: clamp(40px, 10dvh, 100px); font-weight: 900; line-height: 1.14; letter-spacing: .02em; }
+.news-sub { inline-size: fit-content; margin: 0 14px 0 0; padding: 14px 8px; background: var(--book-ink); color: var(--book-paper); font-size: clamp(18px, 3dvh, 26px); font-weight: 700; letter-spacing: .08em; }
+
+/* 図解。図そのものは横書きで描く。 */
+.news-graphics { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 16px; margin-block-end: 22px; padding-block-end: 22px; border-block-end: 1px solid var(--book-rule); font-family: var(--book-sans); }
+.news-chart, .news-stats { width: 20em; margin: 0; padding: 12px 14px 14px; border: 1px solid var(--book-rule); writing-mode: horizontal-tb; font-size: 13px; line-height: 1.5; }
+.news-chart figcaption, .news-stats > p { margin: 0 0 10px; font-weight: 700; }
+.news-chart figcaption b { margin-right: 8px; padding: 1px 6px; background: var(--book-accent); color: var(--book-paper); font-size: 11px; }
+.news-chart dl { display: grid; gap: 4px; margin: 0; }
+.news-chart dl > div { display: grid; grid-template-columns: 9.5em 1fr; gap: 8px; align-items: center; }
+.news-chart dt { color: var(--book-muted); font-size: 11.5px; line-height: 1.3; }
+.news-chart dd { --bar: calc(var(--share) * (100% - 2.2em)); margin: 0; padding-left: calc(var(--bar) + 6px); background: linear-gradient(var(--book-ink), var(--book-ink)) left center / var(--bar) 10px no-repeat; font-weight: 700; font-variant-numeric: tabular-nums; }
+.news-chart dd[data-peak] { background-image: linear-gradient(var(--book-accent), var(--book-accent)); color: var(--book-accent); }
+.news-chart > p { margin: 10px 0 0; color: var(--book-muted); font-size: 11px; }
+.news-chart a { color: var(--book-link); }
+.news-stats dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
+.news-stats dt { color: var(--book-muted); font-size: 11px; }
+.news-stats dd { margin: 0; font-size: 12px; }
+.news-stats b { margin-right: 2px; font-size: 2.3em; font-weight: 900; line-height: 1.1; }
+.news-flow { margin: 0; padding: 12px 10px; border: 1px solid var(--book-rule); font-size: 14px; }
+.news-flow figcaption { margin-block-end: 10px; font-weight: 700; }
+.news-flow ol { display: flex; gap: 22px; margin: 0; padding: 0; list-style: none; }
+.news-flow li { position: relative; padding: 8px 5px; border: 1.5px solid var(--book-ink); font-weight: 700; letter-spacing: .1em; }
+.news-flow li:nth-child(3) { background: var(--book-ink); color: var(--book-paper); }
+.news-flow li + li::before { content: "▼"; position: absolute; top: -20px; left: 0; right: 0; color: var(--book-accent); font-size: 11px; line-height: 20px; text-align: center; writing-mode: horizontal-tb; }
+
+/* 本文。対応するブラウザーでは段を組み、一頁分で次の頁へ折り返す。 */
+.news-body { font-size: calc(var(--reader-font-size) - .125rem); line-height: 1.8; text-align: justify; line-break: strict; overflow-wrap: anywhere; }
+@supports (column-height: 1px) {
+  .news-body { column-width: 12.5em; column-gap: 1.6em; column-rule: 1px solid var(--book-border); column-height: min(44em, calc(100vw - 72px)); row-gap: 3em; }
+}
+.news-body p { margin: 0; text-indent: 1em; }
+.news-body .news-lead { margin-block-end: .7em; padding-block-end: .7em; border-block-end: 1px solid var(--book-border); font-family: var(--book-sans); font-weight: 700; text-indent: 0; }
+.news-guide { display: block; margin-block-end: 1em; padding: .7em .55em; border: 1px solid var(--book-rule); font-size: .9em; line-height: 1.7; break-inside: avoid; }
+.news-guide b { display: block; margin-block-end: .3em; color: var(--book-accent); font-family: var(--book-sans); }
+.news-body h2 { margin-block: 1.4em .9em; padding: .55em .45em; font: 900 1.5em/1.3 var(--book-sans); letter-spacing: .04em; break-after: avoid; break-inside: avoid; }
+.news-body h2:nth-of-type(3n+1) { background: var(--book-ink); color: var(--book-paper); }
+.news-body h2:nth-of-type(3n+2) { padding-block: .2em; border-block: 3px solid var(--book-ink); }
+.news-body h2:nth-of-type(3n) { border: 1px solid var(--book-rule); background: radial-gradient(var(--book-border) 1px, transparent 1.3px) 0 0 / 5px 5px, var(--book-tint); }
+.news-no { display: block; margin-block-end: .35em; color: var(--book-accent); font-size: .5em; letter-spacing: .12em; }
+.news-body h2:nth-of-type(3n+1) .news-no { color: inherit; }
+.news-body h3 { margin-block: 1em .5em; font: 700 1em/1.6 var(--book-sans); text-align: center; break-after: avoid; }
+.news-body h3::before, .news-body h3::after { content: "◇"; margin-inline: .3em; color: var(--book-accent); }
+.news-body strong { font-family: var(--book-sans); font-weight: 700; }
+.news-body a { color: var(--book-link); text-decoration-thickness: 1px; text-underline-offset: .2em; }
+.news-body code { padding: 0 .15em; background: var(--book-note); font: .86em var(--book-mono); }
+.news-body ul, .news-body ol { margin-block: .3em; margin-inline: 0; padding-inline-start: 1.1em; }
+.news-body ol { padding-inline-start: 2.2em; list-style-type: cjk-decimal; }
+.news-body ul { list-style-type: "・"; }
+.news-body li::marker { color: var(--book-accent); }
+.news-body li p { text-indent: 0; }
+.news-body hr { margin-block: 1em; margin-inline: 0; border: 0; border-block-start: 1px solid var(--book-border); }
+.news-body blockquote { margin-block: .8em; margin-inline: 0; padding: .6em .5em; background: var(--book-note); font-size: .94em; }
+.news-body details { margin-block: .8em; padding: .5em .45em; border: 1px solid var(--book-border); border-block-start: 3px solid var(--book-accent); }
+.news-body summary { color: var(--book-accent); cursor: pointer; font: 700 .92em/1.6 var(--book-sans); }
+.news-body details[open] > summary { margin-block-end: .4em; }
+
+/* 縦の段に置く横書きの島：コード・表・文字の図 */
+.news-body pre, .news-table { width: fit-content; max-width: min(34em, calc(100vw - 100px)); max-height: 100%; margin: 0 .9em; overflow: auto; writing-mode: horizontal-tb; break-inside: avoid; }
+.news-body pre { padding: 12px 14px; border-radius: 3px; font-size: .78em; line-height: 1.6; tab-size: 2; }
+.news-body pre code { padding: 0; background: none; font-size: 1em; }
+.news-body pre[data-language="text"] { border: 1px solid var(--book-rule); background: var(--book-paper) !important; color: var(--book-ink) !important; }
+.news-body pre[data-language="text"] span { color: inherit !important; }
+.news-body pre[data-language="text"]::before { content: "図解"; display: block; width: fit-content; margin-bottom: 8px; padding: 1px 6px; background: var(--book-accent); color: var(--book-paper); font: 700 11px var(--book-sans); }
+.news-table { border-block: 2px solid var(--book-rule); font: 12.5px/1.6 var(--book-sans); text-align: left; }
+.news-table table { border-collapse: collapse; }
+.news-table th { border-bottom: 1.5px solid var(--book-rule); white-space: nowrap; }
+.news-table th, .news-table td { padding: 5px 12px 5px 0; border-bottom: 1px solid var(--book-border); vertical-align: top; }
+.news-table tr:last-child td { border-bottom: 0; }
+
+/* 用語の注釈は本と同じ仕組み。縦書きの中でも吹き出しは横書き。 */
+.news-body .term-ref { display: inline; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; line-height: inherit; text-align: inherit; text-decoration: underline dotted var(--book-muted) 1px; text-underline-offset: .25em; cursor: pointer; }
+.news-body .term-ref:hover, .news-body .term-ref[aria-expanded="true"] { background: var(--book-note); color: var(--book-link); }
+.news .term-popover { writing-mode: horizontal-tb; }
+.news-paper .chapter-glossary { margin: 0; margin-block-start: 28px; padding: 14px 12px; border: 1px solid var(--book-rule); border-radius: 0; font-family: var(--book-sans); }
+.news-paper .chapter-glossary > summary { padding: 0; }
+.news-paper .chapter-glossary > summary > span { margin-left: 0; margin-inline-start: auto; }
+.news-paper .chapter-glossary dl > div { padding: 0; padding-block: 12px; border-top: 0; border-block-start: 1px solid var(--book-border); }
+.news-paper .chapter-glossary dd { margin: 0; margin-block-start: 6px; }
+.news-paper .chapter-glossary :target { box-shadow: none; }
+
+/* 紙面の終わり */
+.news-end { margin-block-start: 28px; padding-block-start: 24px; border-block-start: 3px double var(--book-rule); font-family: var(--book-sans); }
+.news-next { display: block; inline-size: fit-content; padding: 18px 12px; background: var(--book-ink); color: var(--book-paper); font-size: 22px; font-weight: 900; text-decoration: none; }
+.news-next small { display: block; margin-block-end: 8px; font-size: 13px; letter-spacing: .1em; }
+.news-next:hover { background: var(--book-accent); }
+.news-end > a:not(.news-next) { display: block; margin-block-start: 18px; color: var(--book-link); font-size: 14px; }
+.news-colophon { margin: 14px 0 0; margin-block-start: 14px; color: var(--book-muted); font-size: 12px; }
+
+.news-turn { position: fixed; bottom: 18px; z-index: 30; align-items: center; justify-content: center; width: 46px; height: 46px; padding: 0; border: 1px solid var(--book-border); border-radius: 50%; background: var(--book-paper); box-shadow: 0 4px 14px #0000001f; font-size: 20px; }
+.news-turn[data-turn="forward"] { left: 18px; }
+.news-turn[data-turn="back"] { right: 18px; }
+.news-turn:disabled { visibility: hidden; }
+
+@media (max-width: 600px) {
+  .news .book-topbar { gap: 10px; padding: 0 12px; }
+  .news .book-brand > span:last-child { display: none; }
+  .news-paper { padding: 16px 18px; }
+  .news-turn { bottom: 12px; width: 40px; height: 40px; }
+  .news-turn[data-turn="forward"] { left: 10px; }
+  .news-turn[data-turn="back"] { right: 10px; }
+}
