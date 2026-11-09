@@ -115,6 +115,7 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
 
       <header class="news-hero">
         <p class="news-kicker" set:html={vertical(`${chapter.group}　第${chapter.number}章`)} />
+        <p class="news-deck" set:html={vertical(escapeHTML(frontmatter.description))} />
         <h1 set:html={vertical(escapeHTML(frontmatter.title))} />
         <p class="news-sub" set:html={vertical(escapeHTML(chapter.subtitle))} />
       </header>
@@ -161,9 +162,11 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
       const bar = document.getElementById("reading-progress-bar");
       const back = document.querySelector<HTMLButtonElement>('[data-turn="back"]')!;
       const forward = document.querySelector<HTMLButtonElement>('[data-turn="forward"]')!;
+      const compact = matchMedia("(max-width: 900px)");
       const behavior: ScrollBehavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
       const page = () => paper.clientWidth * 0.85;
-      const end = () => paper.scrollWidth - paper.clientWidth;
+      const end = () => compact.matches ? paper.scrollHeight - paper.clientHeight : paper.scrollWidth - paper.clientWidth;
+      const position = () => compact.matches ? paper.scrollTop : -paper.scrollLeft;
       document.documentElement.classList.add("js-ready");
 
       // 紙面割り：本文を一頁ずつの箱（段組み）へ流し込み、溢れた段落や箇条書きは文字の位置で二つに割る。
@@ -289,15 +292,17 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
 
       function paginate(anchor?: HTMLElement) {
         const key = anchor?.dataset.answer;
-        const before = anchor?.getBoundingClientRect().right ?? 0;
-        const read = end() > 0 ? -paper.scrollLeft / end() : 0;
+        const edge = (element: Element) => compact.matches ? element.getBoundingClientRect().top : element.getBoundingClientRect().right;
+        const before = anchor ? edge(anchor) : 0;
+        const read = end() > 0 ? position() / end() : 0;
         const queue = blocks.map((block) => block.cloneNode(true) as HTMLElement);
         flow.replaceChildren();
         while (queue.length) fillPage(queue);
         flow.dataset.paged = "";
         const again = key === undefined ? null : flow.querySelector(`[data-answer="${key}"]`);
-        if (again) paper.scrollLeft += again.getBoundingClientRect().right - before;
-        else paper.scrollLeft = -read * end();
+        if (compact.matches) paper.scrollTop = again ? paper.scrollTop + edge(again) - before : read * end();
+        else paper.scrollLeft = again ? paper.scrollLeft + edge(again) - before : -read * end();
+        paper.setAttribute("aria-label", compact.matches ? "紙面。各段を右から左へ、紙面を上から下へ読みます" : "紙面。右から左へ読みます");
         update();
       }
 
@@ -311,7 +316,7 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
       }, true);
 
       function update() {
-        const read = end() > 0 ? Math.min(1, -paper.scrollLeft / end()) : 1;
+        const read = end() > 0 ? Math.min(1, position() / end()) : 1;
         if (bar) bar.style.width = `${read * 100}%`;
         back.disabled = paper.scrollLeft > -2;
         forward.disabled = read > 0.998;
@@ -361,11 +366,12 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
         return !!box && box.scrollHeight > box.clientHeight;
       };
       paper.addEventListener("wheel", (event) => {
-        if (event.ctrlKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY) || inScroller(event.target)) return;
+        if (compact.matches || event.ctrlKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY) || inScroller(event.target)) return;
         event.preventDefault();
         paper.scrollLeft -= event.deltaY * (event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? page() : 1);
       }, { passive: false });
       document.addEventListener("keydown", (event) => {
+        if (compact.matches) return;
         const target = event.target instanceof Element ? event.target : null;
         if (event.altKey || event.ctrlKey || event.metaKey || target?.closest("input, select, textarea, pre, .news-table, .term-popover")) return;
         if (event.key === " " && target?.closest("a, button, summary")) return;
