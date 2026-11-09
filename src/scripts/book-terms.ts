@@ -62,26 +62,30 @@ if (popup && typeof popup.showPopover === "function") {
     button.setAttribute("aria-expanded", "false");
     button.setAttribute("aria-label", `${label}の意味`);
     link.replaceWith(button);
-
-    button.addEventListener("click", (event) => {
-      if (active === button && popup.matches(":popover-open")) {
-        dismiss();
-        return;
-      }
-      active?.setAttribute("aria-expanded", "false");
-      title.textContent = button.textContent;
-      name.textContent = entry.querySelector("[data-term-name]")?.textContent ?? "";
-      definition.textContent = entry.querySelector("[data-term-definition]")?.textContent ?? "";
-      const target = entry.querySelector<HTMLAnchorElement>("[data-term-chapter]")!;
-      chapterLink.href = target.href;
-      chapterLink.textContent = target.textContent;
-      active = button;
-      button.setAttribute("aria-expanded", "true");
-      if (!popup.matches(":popover-open")) popup.showPopover();
-      positionNote();
-      if (event.detail === 0) close.focus({ preventScroll: true });
-    });
   }
+
+  // Delegated, so copies made when the newspaper view repaginates keep working.
+  document.addEventListener("click", (event) => {
+    const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button.term-ref") : null;
+    const entry = button && document.getElementById(`glossary-${button.dataset.bookTerm}`);
+    if (!button || !entry) return;
+    if (active === button && popup.matches(":popover-open")) {
+      dismiss();
+      return;
+    }
+    active?.setAttribute("aria-expanded", "false");
+    title.textContent = button.textContent;
+    name.textContent = entry.querySelector("[data-term-name]")?.textContent ?? "";
+    definition.textContent = entry.querySelector("[data-term-definition]")?.textContent ?? "";
+    const target = entry.querySelector<HTMLAnchorElement>("[data-term-chapter]")!;
+    chapterLink.href = target.href;
+    chapterLink.textContent = target.textContent;
+    active = button;
+    button.setAttribute("aria-expanded", "true");
+    if (!popup.matches(":popover-open")) popup.showPopover();
+    positionNote();
+    if (event.detail === 0) close.focus({ preventScroll: true });
+  });
 
   popup.addEventListener("beforetoggle", (event) => {
     if ((event as ToggleEvent).newState === "closed") {
