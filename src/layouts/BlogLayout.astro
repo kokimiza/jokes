@@ -1,88 +1,133 @@
 ---
-import Section from "../components/common/Section.astro";
-import type { ArticleFrontmatter } from "../lib/types";
-import {
-	getShortDescription,
-	processArticleDate,
-	generateSourceUrl,
-} from "../lib/utils";
-import { GLOBAL } from "../lib/variables";
 import type { MarkdownLayoutProps } from "astro";
-import Prose from "../components/Prose.astro";
-import Layout from "./Layout.astro";
+import type { ArticleFrontmatter } from "../lib/types";
+import { SC_BOOK, SC_CHAPTERS, chapterHref } from "../lib/sc-book";
+import ChapterList from "../components/book/ChapterList.astro";
+import SectionList from "../components/book/SectionList.astro";
+import TermNotes from "../components/book/TermNotes.astro";
+import "../styles/book.css";
 
-type Props = MarkdownLayoutProps<ArticleFrontmatter>;
-
-const { frontmatter } = Astro.props;
-const shortDescription = getShortDescription(frontmatter.description);
-const articleDate = processArticleDate(frontmatter.timestamp);
-const sourceUrl = generateSourceUrl(frontmatter.filename, "blog");
+type Props = Pick<MarkdownLayoutProps<ArticleFrontmatter & { bookGlossary?: string[] }>, "frontmatter"> & {
+  headings?: { depth: number; slug: string; text: string }[];
+};
+const { frontmatter, headings = [] } = Astro.props;
+const chapter = SC_CHAPTERS.find((item) => item.slug === frontmatter.filename);
+const previous = chapter && SC_CHAPTERS[chapter.number - 2];
+const next = chapter && SC_CHAPTERS[chapter.number];
+const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://jocarium.productions");
 ---
 
-<Layout>
-  <Fragment slot="head">
-    <title>{frontmatter.title} • {GLOBAL.username}</title>
+<!doctype html>
+<html lang="ja" data-reader-theme="paper" data-reader-font="sans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
     <meta name="description" content={frontmatter.description} />
-    <meta
-      property="og:title"
-      content={`${frontmatter.title} • ${GLOBAL.username}`}
-    />
-    <meta property="og:description" content={shortDescription} />
-    <meta
-      property="og:image"
-      content={`${GLOBAL.rootUrl}/${GLOBAL.profileImage}`}
-    />
-    <meta property="og:url" content={frontmatter.url} />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content={`${frontmatter.title} • ${GLOBAL.username}`}
-    />
-    <meta name="twitter:description" content={shortDescription} />
-    <meta
-      name="twitter:image"
-      content={`${GLOBAL.rootUrl}/${GLOBAL.profileImage}`}
-    />
-    <meta http-equiv="content-language" content="ja" />
-    <meta name="language" content="Japanese" />
-    <link rel="canonical" href={sourceUrl} />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css"
-      integrity="sha384-5TcZemv2l/9On385z///+d7MSYlvIEw9FuZTIdZ14vJLqWphw7e7ZPuOiCHJcFCP"
-      crossorigin="anonymous"
-    />
-
-    <!-- The loading of KaTeX is deferred to speed up page rendering -->
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"
-      integrity="sha384-cMkvdD8LoxVzGF/RPUKAcvmm49FQ0oxwDF3BGKtDXcEc+T1b2N+teh/OJfpU0jr6"
-      crossorigin="anonymous"></script>
-
-    <!-- To automatically render math in text elements, include the auto-render extension: -->
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"
-      integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh"
-      crossorigin="anonymous"
-      onload="renderMathInElement(document.body);"></script>
-  </Fragment>
-  <Section class="pt-8">
-    <div class="flex flex-col gap-4 mt-8 mb-16">
-      <h1
-        class="text-3xl sm:text-4xl leading-normal sm:leading-normal font-display"
-      >
-        {frontmatter.title}
-      </h1>
-      <div class="flex justify-between">
-        <span>{articleDate}</span>
-        <span>{frontmatter.time} min</span>
+    <meta name="theme-color" content="#f3f0e8" />
+    <title>{chapter ? `第${chapter.number}章 ${chapter.title}｜${SC_BOOK.title}` : SC_BOOK.title}</title>
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content={`${frontmatter.title}｜${SC_BOOK.title}`} />
+    <meta property="og:description" content={frontmatter.description} />
+    <meta property="og:url" content={canonical} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script is:inline>
+      // Apply preferences before paint; without a saved theme, follow the OS.
+      try {
+        const preferences = JSON.parse(localStorage.getItem("sc-reader-settings") || "{}");
+        const theme = ["paper", "light", "dark"].includes(preferences.theme) ? preferences.theme : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "paper";
+        document.documentElement.dataset.readerTheme = theme;
+        if (["sans", "serif"].includes(preferences.font)) document.documentElement.dataset.readerFont = preferences.font;
+        const sizes = { small: "1rem", standard: "1.125rem", large: "1.25rem" };
+        if (Object.hasOwn(sizes, preferences.size)) document.documentElement.style.setProperty("--reader-font-size", sizes[preferences.size]);
+      } catch {}
+    </script>
+  </head>
+  <body class="book-reader" data-current-chapter={chapter?.slug}>
+    <a class="skip-link" href="#book-content">本文へ移動</a>
+    <div class="reading-progress" aria-hidden="true"><span id="reading-progress-bar"></span></div>
+    <header class="book-topbar">
+      <a class="book-brand" href={SC_BOOK.home} aria-label={`${SC_BOOK.title} 目次へ`}>
+        <span class="book-emblem" aria-hidden="true">支</span>
+        <span>情報処理安全確保支援士<small>科目Bテキスト {SC_BOOK.edition}</small></span>
+      </a>
+      <nav class="view-switch" aria-label="表示形式">
+        <a href={chapter ? chapterHref(chapter.slug) : SC_BOOK.home} aria-current="page">本</a><a href={`/sc/news/${chapter?.slug ?? "sc_1"}/`}>新聞</a>
+      </nav>
+      <div class="reader-actions" data-js-only>
+        <details class="reader-settings">
+          <summary aria-label="表示の設定">表示</summary>
+          <div class="settings-panel">
+            <label for="reader-size">文字の大きさ</label>
+            <select id="reader-size"><option value="small">小</option><option value="standard" selected>中</option><option value="large">大</option></select>
+            <label for="reader-font">本文の書体</label>
+            <select id="reader-font"><option value="sans">ゴシック</option><option value="serif">明朝</option></select>
+            <label for="reader-theme">背景</label>
+            <select id="reader-theme"><option value="paper">紙</option><option value="light">白</option><option value="dark">黒</option></select>
+            <button class="print-button" type="button" id="book-print">この章を印刷</button>
+          </div>
+        </details>
       </div>
+    </header>
+
+    <div class:list={["book-shell", { "book-cover-shell": !chapter }]}>
+      <aside class="book-sidebar" aria-label="章の一覧">
+        <p class="sidebar-heading">目次</p>
+        <nav aria-label="章の目次"><ChapterList current={chapter?.slug} /></nav>
+        <div class="sidebar-foot">
+          <a data-resume-link href={chapterHref("sc_1")} hidden>前回の続きから読む</a>
+          <a href="/projects/sc-texts/">この本について・出典</a>
+          <a href="/">Jocarium</a>
+        </div>
+      </aside>
+
+      <main class="book-main" id="book-content" tabindex="-1">
+        <div class="mobile-navigation">
+          <details><summary>目次 <span>{chapter ? `第${chapter.number}章` : `全${SC_CHAPTERS.length}章`}</span></summary><nav aria-label="章の目次（モバイル）"><ChapterList current={chapter?.slug} /></nav></details>
+          {headings.length > 0 && <details><summary>この章の節 <span>移動</span></summary><nav aria-label="節の目次（モバイル）"><SectionList headings={headings} /></nav></details>}
+        </div>
+
+        <article class="book-article">
+          <header class="chapter-header">
+            {chapter && <p class="chapter-kicker">第{chapter.number}章</p>}
+            <h1>{frontmatter.title}</h1>
+            <p class="chapter-description">{frontmatter.description}</p>
+            {chapter && <details class="chapter-guide">
+              <summary>はじめて読むときの道順</summary>
+              <p>{chapter.guide}</p>
+            </details>}
+          </header>
+
+          {frontmatter.bookGlossary?.length && <p class="term-help"><span aria-hidden="true">?</span> 点線の用語をタップすると、短い説明が開きます。</p>}
+
+          <div class="resume-notice" id="resume-notice" hidden>
+            <a id="resume-section" href="#book-content">前回の続きから読む</a>
+            <button type="button" id="dismiss-resume" aria-label="閉じる">×</button>
+          </div>
+
+          <div class="book-prose" id="book-prose"><slot /></div>
+          <TermNotes ids={frontmatter.bookGlossary ?? []} />
+
+          {chapter && <footer class="chapter-footer">
+            <div class="chapter-completion" data-js-only><p>この章を読み終えたら記録する</p><button type="button" id="chapter-complete" aria-pressed="false">読了にする</button></div>
+            <nav class="chapter-pagination" aria-label="前後の章">
+              <a href={previous ? chapterHref(previous.slug) : SC_BOOK.home}><small>{previous ? `← 第${previous.number}章` : "← 目次"}</small><span>{previous?.title ?? "目次へ戻る"}</span></a>
+              {next ? <a href={chapterHref(next.slug)}><small>第{next.number}章 →</small><span>{next.title}</span></a> : <a href={SC_BOOK.home}><small>目次 →</small><span>目次へ戻る</span></a>}
+            </nav>
+          </footer>}
+          <p class="book-colophon">改訂 <time datetime={SC_BOOK.revised}>{SC_BOOK.revised.replace(/(\d+)-(\d+)-(\d+)/, (_, y, m, d) => `${y}年${Number(m)}月${Number(d)}日`)}</time> ・ Yu Tokunaga</p>
+        </article>
+      </main>
+
+      {headings.length > 0 && <aside class="book-toc" aria-label="この章の節">
+        <p class="toc-heading">この章の節</p>
+        <nav aria-label="節の目次"><SectionList headings={headings} /></nav>
+        <a class="back-to-top" href="#book-content">章の先頭へ ↑</a>
+      </aside>}
     </div>
-    <Prose>
-      <slot />
-    </Prose>
-    <p class="pt-8">~{GLOBAL.username}</p>
-  </Section>
-</Layout>
+    <div class="reader-announcement" role="status" aria-live="polite" id="reader-announcement"></div>
+    <script src="../scripts/book-reader.ts"></script>
+    <script src="../scripts/book-terms.ts"></script>
+  </body>
+</html>
