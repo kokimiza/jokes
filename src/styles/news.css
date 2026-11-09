@@ -4,7 +4,7 @@
 .news .book-topbar { position: static; flex: none; padding: 0 24px; }
 .news .reading-progress span { margin-left: auto; }
 .news .tcy { text-combine-upright: all; }
-.news .upright { text-orientation: upright; }
+.news .upright { text-orientation: upright; word-break: break-all; }
 
 .news-pages { display: flex; gap: 2px; min-width: 0; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
 .news-pages a { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 3px; color: var(--book-muted); font: 700 14px var(--book-serif); text-decoration: none; }
@@ -43,7 +43,7 @@
 .news-chart dd { --bar: calc(var(--share) * (100% - 2.2em)); margin: 0; padding-left: calc(var(--bar) + 6px); background: linear-gradient(var(--book-ink), var(--book-ink)) left center / var(--bar) 10px no-repeat; font-weight: 700; font-variant-numeric: tabular-nums; }
 .news-chart dd[data-peak] { background-image: linear-gradient(var(--book-accent), var(--book-accent)); color: var(--book-accent); }
 .news-chart > p { margin: 10px 0 0; color: var(--book-muted); font-size: 11px; }
-.news-chart a { color: var(--book-link); }
+.news-chart a { color: var(--book-link); white-space: nowrap; }
 .news-stats dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
 .news-stats dt { color: var(--book-muted); font-size: 11px; }
 .news-stats dd { margin: 0; font-size: 12px; }
@@ -87,8 +87,8 @@
 .news-body details[open] > summary { margin-block-end: .4em; }
 
 /* 縦の段に置く横書きの島：コード・表・文字の図 */
-.news-body pre, .news-table { width: fit-content; max-width: min(34em, calc(100vw - 100px)); max-height: 100%; margin: 0 .9em; overflow: auto; writing-mode: horizontal-tb; break-inside: avoid; }
-.news-body pre { padding: 12px 14px; border-radius: 3px; font-size: .78em; line-height: 1.6; tab-size: 2; }
+.news-body pre, .news-table { width: fit-content; max-width: min(36em, calc(100vw - 100px)); max-height: 100%; margin: 0 .9em; overflow: auto; writing-mode: horizontal-tb; break-inside: avoid; }
+.news-body pre { max-width: min(46em, calc(100vw - 100px)); padding: 12px 14px; border-radius: 3px; font-size: .78em; line-height: 1.6; tab-size: 2; }
 .news-body pre code { padding: 0; background: none; font-size: 1em; }
 .news-body pre[data-language="text"] { border: 1px solid var(--book-rule); background: var(--book-paper) !important; color: var(--book-ink) !important; }
 .news-body pre[data-language="text"] span { color: inherit !important; }
@@ -126,6 +126,7 @@
 @media (max-width: 600px) {
   .news .book-topbar { gap: 10px; padding: 0 12px; }
   .news .book-brand > span:last-child { display: none; }
+  .news-pages a { width: 26px; }
   .news-paper { padding: 16px 18px; }
   .news-turn { bottom: 12px; width: 40px; height: 40px; }
   .news-turn[data-turn="forward"] { left: 10px; }
