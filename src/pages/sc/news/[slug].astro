@@ -35,7 +35,9 @@ function vertical(html: string) {
   }).join("");
 }
 
+let headline = 0;
 const body = vertical((await page.compiledContent())
+  .replace(/<h2/g, () => `<h2 data-look="${headline++ % 3}"`)
   .replace(/(<h2[^>]*>)(\d+)\.\s*/g, '$1<span class="news-no">第$2節</span>')
   .replace(/(<h3[^>]*>)\d+\.\d+\s*/g, "$1")
   // A vertical float lets text run under the figure; a horizontal float would spill across pages.
@@ -75,6 +77,7 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script is:inline>
       // Same saved preferences as the book view, applied before paint.
+      document.documentElement.classList.add("news-js");
       try {
         const preferences = JSON.parse(localStorage.getItem("sc-reader-settings") || "{}");
         document.documentElement.dataset.readerTheme = ["paper", "light", "dark"].includes(preferences.theme) ? preferences.theme : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "paper";
@@ -163,6 +166,150 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
       const end = () => paper.scrollWidth - paper.clientWidth;
       document.documentElement.classList.add("js-ready");
 
+      // 紙面割り：本文を一頁ずつの箱（段組み）へ流し込み、溢れた段落や箇条書きは文字の位置で二つに割る。
+      // CSS の column-wrap に頼らないので、どのブラウザーでも同じ段組みになる。
+      const flow = document.getElementById("book-prose")!;
+      const blocks = Array.from(flow.children) as HTMLElement[];
+      const answers = blocks.flatMap((block) => Array.from(block.matches("details") ? [block] : block.querySelectorAll("details"))) as HTMLDetailsElement[];
+      answers.forEach((details, index) => { details.dataset.answer = String(index); });
+      const range = document.createRange();
+      const splittable = "p, ul, ol, blockquote, details[open]";
+
+      // A block overflows when some of its text was pushed into a tier below the page.
+      function overflows(block: Element, limit: number) {
+        range.selectNodeContents(block);
+        return Array.from(range.getClientRects()).some((rect) => rect.height > 0 && rect.top >= limit);
+      }
+
+      function split(block: HTMLElement, limit: number): [HTMLElement, HTMLElement] | null {
+        const chars: [Text, number][] = [];
+        const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
+          if (node.parentElement?.closest(".tcy, summary")) { if (node.data.trim()) chars.push([node, 0]); continue; }
+          for (let i = 0; i < node.data.length; i++) if (node.data[i].trim()) chars.push([node, i]);
+        }
+        const fits = ([node, offset]: [Text, number]) => {
+          range.setStart(node, offset);
+          range.setEnd(node, offset + 1);
+          return range.getBoundingClientRect().top < limit;
+        };
+        let low = 0;
+        let high = chars.length;
+        while (low < high) {
+          const mid = (low + high) >> 1;
+          if (fits(chars[mid])) low = mid + 1;
+          else high = mid;
+        }
+        if (low === 0 || low === chars.length) return null;
+        const [node, offset] = chars[low];
+        // Cut before the outermost element that starts exactly at the break, so no empty item is left behind.
+        let cut: Node | null = null;
+        for (let parent = node.parentNode; parent && parent !== block; parent = parent.parentNode) {
+          range.setStart(parent, 0);
+          range.setEnd(node, offset);
+          if (!range.toString().trim()) cut = parent;
+        }
+        const item = node.parentElement?.closest("li");
+        const list = item && block.contains(item) ? item.parentElement : null;
+        const index = list && item ? Array.from(list.children).indexOf(item) : 0;
+        const paragraph = node.parentElement?.closest("p, li");
+        const broken = paragraph && block.contains(paragraph) && !(cut && cut.contains(paragraph)) ? paragraph : null;
+        range.setStart(block, 0);
+        if (cut) range.setEndBefore(cut);
+        else range.setEnd(node, offset);
+        const head = block.cloneNode(false) as HTMLElement;
+        head.append(range.extractContents());
+        block.removeAttribute("id");
+        broken?.classList.add("cont");
+        if (list instanceof HTMLOListElement) list.start += index;
+        if (!(block instanceof HTMLDetailsElement)) return [head, block];
+        const rest = document.createElement("div");
+        rest.className = "details-cont";
+        rest.append(...Array.from(block.childNodes));
+        return [head, rest];
+      }
+
+      function fillPage(queue: HTMLElement[]) {
+        const sheet = flow.appendChild(document.createElement("div"));
+        sheet.className = "news-page";
+        const limit = sheet.getBoundingClientRect().bottom - 1;
+        const columns = getComputedStyle(sheet);
+        const tiers = Number.parseInt(columns.columnCount, 10) || 1;
+        const tier = (sheet.clientHeight - (tiers - 1) * Number.parseFloat(columns.columnGap)) / tiers;
+        const room = 6 * Number.parseFloat(getComputedStyle(flow).fontSize);
+        const deferred: HTMLElement[] = [];
+        // Figures that miss the page wait for the next one while text fills the gap, but never past a new section.
+        const blocked = () => deferred.length > 0 && queue[0]?.matches("h2");
+        for (;;) {
+          for (let budget = 0; queue.length && budget < 1600 && !blocked();) {
+            const block = queue.shift()!;
+            sheet.append(block);
+            budget += (block.textContent?.length ?? 0) + 40;
+          }
+          // Too little room under a figure gives one-character lines; let the figure take the whole tier.
+          for (const figure of sheet.querySelectorAll<HTMLElement>(".news-figure:not(.full)")) {
+            if (tier - figure.offsetHeight < room) {
+              figure.classList.add("full");
+              figure.style.height = `${tier - 1}px`;
+            }
+          }
+          const over = Array.from(sheet.children).find((child) => overflows(child, limit)) as HTMLElement | undefined;
+          if (!over) {
+            if (queue.length && !blocked()) continue;
+            break;
+          }
+          while (sheet.lastElementChild !== over) {
+            const later = sheet.lastElementChild as HTMLElement;
+            later.remove();
+            queue.unshift(later);
+          }
+          if (over.matches(".news-figure") && over !== sheet.firstElementChild) {
+            over.remove();
+            deferred.push(over);
+            continue;
+          }
+          const parts = over.matches(splittable) ? split(over, limit) : null;
+          if (parts) {
+            over.replaceWith(parts[0]);
+            queue.unshift(parts[1]);
+          } else if (over !== sheet.firstElementChild) {
+            over.remove();
+            queue.unshift(over);
+          }
+          break;
+        }
+        // A headline never closes a page.
+        const last = sheet.lastElementChild as HTMLElement | null;
+        if (last?.matches("h2, h3") && last !== sheet.firstElementChild) {
+          last.remove();
+          queue.unshift(last);
+        }
+        queue.unshift(...deferred);
+      }
+
+      function paginate(anchor?: HTMLElement) {
+        const key = anchor?.dataset.answer;
+        const before = anchor?.getBoundingClientRect().right ?? 0;
+        const read = end() > 0 ? -paper.scrollLeft / end() : 0;
+        const queue = blocks.map((block) => block.cloneNode(true) as HTMLElement);
+        flow.replaceChildren();
+        while (queue.length) fillPage(queue);
+        flow.dataset.paged = "";
+        const again = key === undefined ? null : flow.querySelector(`[data-answer="${key}"]`);
+        if (again) paper.scrollLeft += again.getBoundingClientRect().right - before;
+        else paper.scrollLeft = -read * end();
+        update();
+      }
+
+      // Opening an answer changes its length, so the pages are laid out again around it.
+      flow.addEventListener("toggle", (event) => {
+        const details = event.target as HTMLDetailsElement;
+        const original = answers[Number(details.dataset.answer)];
+        if (!original || original.open === details.open) return;
+        original.open = details.open;
+        paginate(details);
+      }, true);
+
       function update() {
         const read = end() > 0 ? Math.min(1, -paper.scrollLeft / end()) : 1;
         if (bar) bar.style.width = `${read * 100}%`;
@@ -170,10 +317,43 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
         forward.disabled = read > 0.998;
       }
       paper.addEventListener("scroll", update, { passive: true });
-      addEventListener("resize", update);
-      update();
-      back.addEventListener("click", () => paper.scrollBy({ left: page(), behavior }));
-      forward.addEventListener("click", () => paper.scrollBy({ left: -page(), behavior }));
+
+      // Page turns line a sheet up with the right edge instead of moving a fixed distance.
+      function turn(direction: 1 | -1) {
+        const view = paper.getBoundingClientRect();
+        const start = view.right - Number.parseFloat(getComputedStyle(paper).paddingRight);
+        const sheets = Array.from(paper.querySelectorAll<HTMLElement>(":scope > :not(.news-body), .news-page"));
+        const shifts = sheets.map((sheet) => sheet.getBoundingClientRect().right - start);
+        let shift: number | undefined;
+        if (direction > 0) {
+          const ahead = shifts.filter((value) => value < -2);
+          const seen = ahead.filter((value) => value + start > view.left + 8);
+          shift = seen.length ? Math.min(...seen) : ahead.length ? Math.max(...ahead) : undefined;
+        } else {
+          const behind = shifts.filter((value) => value > 2);
+          const near = behind.filter((value) => value <= start - view.left);
+          shift = near.length ? Math.max(...near) : behind.length ? Math.min(...behind) : undefined;
+        }
+        paper.scrollBy({ left: shift ?? -direction * page(), behavior });
+      }
+      back.addEventListener("click", () => turn(-1));
+      forward.addEventListener("click", () => turn(1));
+
+      let size = "";
+      let timer = 0;
+      document.fonts.ready.then(() => {
+        paginate();
+        size = `${paper.clientWidth}x${paper.clientHeight}`;
+        if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
+        update();
+        new ResizeObserver(() => {
+          const now = `${paper.clientWidth}x${paper.clientHeight}`;
+          if (now === size) return;
+          size = now;
+          clearTimeout(timer);
+          timer = window.setTimeout(() => paginate(), 150);
+        }).observe(paper);
+      });
 
       // Wheel and arrow keys move the page leftward, the way the text runs.
       const inScroller = (target: EventTarget | null) => {
@@ -194,10 +374,15 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
           paper.scrollTo({ left: event.key === "Home" ? 0 : -end(), behavior });
           return;
         }
-        const distance = { PageDown: page(), PageUp: -page(), " ": event.shiftKey ? -page() : page(), ArrowLeft: 80, ArrowDown: 80, ArrowRight: -80, ArrowUp: -80 }[event.key];
+        if (event.key === "PageDown" || event.key === "PageUp" || event.key === " ") {
+          event.preventDefault();
+          turn(event.key === "PageUp" || (event.key === " " && event.shiftKey) ? -1 : 1);
+          return;
+        }
+        const distance = { ArrowLeft: 80, ArrowDown: 80, ArrowRight: -80, ArrowUp: -80 }[event.key];
         if (distance === undefined) return;
         event.preventDefault();
-        paper.scrollBy({ left: -distance, behavior: Math.abs(distance) > 80 ? behavior : "auto" });
+        paper.scrollBy({ left: -distance });
       });
     </script>
   </body>
