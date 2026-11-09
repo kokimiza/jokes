@@ -6,13 +6,14 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
+import remarkBookGlossary from "./src/lib/remark-book-glossary.mjs";
 
 export default defineConfig({
 	vite: {
 		plugins: [tailwindcss()],
 	},
 	markdown: {
-		remarkPlugins: [remarkMath],
+		remarkPlugins: [remarkMath, remarkBookGlossary],
 		rehypePlugins: [rehypeKatex],
 		syntaxHighlight: {
 			type: "shiki",
