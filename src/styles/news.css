@@ -55,26 +55,30 @@
 .news-flow li:nth-child(3) { background: var(--book-ink); color: var(--book-paper); }
 .news-flow li + li::before { content: "▼"; position: absolute; top: -20px; left: 0; right: 0; color: var(--book-accent); font-size: 11px; line-height: 20px; text-align: center; writing-mode: horizontal-tb; }
 
-/* 本文。対応するブラウザーでは段を組み、一頁分で次の頁へ折り返す。
+/* 本文。スクリプトが一頁ずつの箱（.news-page）へ割り付け、箱の中を段に組む。
    段数は画面の高さで決め、図表の高さの上限（--tier＝一段の高さ）を計算できるようにする。 */
-.news-paper { --frame: 108px; --tier: calc(100dvh - var(--frame)); }
+.news-paper { --frame: 108px; --tiers: 2; --tier: calc((100dvh - var(--frame) - (var(--tiers) - 1) * 24px) / var(--tiers)); }
+@media (min-height: 700px) { .news-paper { --tiers: 3; } }
+@media (min-height: 1000px) { .news-paper { --tiers: 4; } }
 .news-body { font-size: calc(var(--reader-font-size) - .125rem); line-height: 1.8; text-align: justify; line-break: strict; overflow-wrap: anywhere; }
-@supports (column-height: 1px) {
-  .news-paper { --tiers: 2; --tier: calc((100dvh - var(--frame) - (var(--tiers) - 1) * 24px) / var(--tiers)); }
-  .news-body { column-count: var(--tiers); column-gap: 24px; column-rule: 1px solid var(--book-border); column-height: min(44em, calc(100vw - 72px)); row-gap: 3em; }
-  @media (min-height: 700px) { .news-paper { --tiers: 3; } }
-  @media (min-height: 1000px) { .news-paper { --tiers: 4; } }
-}
+.news-js .news-body:not([data-paged]) { visibility: hidden; }
+.news-page { width: min(44em, calc(100vw - 72px)); overflow: clip; column-count: var(--tiers); column-gap: 24px; column-fill: auto; column-rule: 1px solid var(--book-border); }
+.news-page + .news-page { margin-block-start: 2.5em; }
+.news-page > :first-child { margin-block-start: 0; }
+.news-body p.cont { text-indent: 0; }
+.news-body li.cont { list-style-type: none; }
 .news-body p { margin: 0; text-indent: 1em; }
 .news-body .news-lead { margin-block-end: .7em; padding-block-end: .7em; border-block-end: 1px solid var(--book-border); font-family: var(--book-sans); font-weight: 700; text-indent: 0; }
 .news-guide { display: block; margin-block-end: 1em; padding: .7em .55em; border: 1px solid var(--book-rule); font-size: .9em; line-height: 1.7; break-inside: avoid; }
 .news-guide b { display: block; margin-block-end: .3em; color: var(--book-accent); font-family: var(--book-sans); }
 .news-body h2 { margin-block: 1.4em .9em; padding: .55em .45em; font: 900 1.5em/1.3 var(--book-sans); letter-spacing: .04em; break-after: avoid; break-inside: avoid; }
-.news-body h2:nth-of-type(3n+1) { background: var(--book-ink); color: var(--book-paper); }
-.news-body h2:nth-of-type(3n+2) { padding-block: .2em; border-block: 3px solid var(--book-ink); }
-.news-body h2:nth-of-type(3n) { border: 1px solid var(--book-rule); background: radial-gradient(var(--book-border) 1px, transparent 1.3px) 0 0 / 5px 5px, var(--book-tint); }
+.news-body h2[data-look="0"] { background: var(--book-ink); color: var(--book-paper); }
+.news-body h2[data-look="1"] { padding-block: .2em; border-block: 3px solid var(--book-ink); }
+.news-body h2[data-look="2"] { border: 1px solid var(--book-rule); background: radial-gradient(var(--book-border) 1px, transparent 1.3px) 0 0 / 5px 5px, var(--book-tint); }
 .news-no { display: block; margin-block-end: .35em; color: var(--book-accent); font-size: .5em; letter-spacing: .12em; }
-.news-body h2:nth-of-type(3n+1) .news-no { color: inherit; }
+.news-body h2[data-look="0"] .news-no { color: inherit; }
+/* 見出しと囲みは図の下へ潜らせず、図の後から始める。 */
+.news-body :is(h2, h3, blockquote, details, .details-cont, .news-guide, hr) { clear: both; }
 .news-body h3 { margin-block: 1em .5em; font: 700 1em/1.6 var(--book-sans); text-align: center; break-after: avoid; }
 .news-body h3::before, .news-body h3::after { content: "◇"; margin-inline: .3em; color: var(--book-accent); }
 .news-body strong { font-family: var(--book-sans); font-weight: 700; }
@@ -90,10 +94,12 @@
 .news-body details { margin-block: .8em; padding: .5em .45em; border: 1px solid var(--book-border); border-block-start: 3px solid var(--book-accent); }
 .news-body summary { color: var(--book-accent); cursor: pointer; font: 700 .92em/1.6 var(--book-sans); }
 .news-body details[open] > summary { margin-block-end: .4em; }
+.news-body .details-cont { margin-block-end: .8em; padding: .5em .45em; border: 1px solid var(--book-border); border-block-start-style: dashed; }
 
 /* 縦の段に置く横書きの島：コード・表・文字の図。段の上に寄せ、下の余白へ本文を回り込ませる。 */
 .news-figure { float: inline-start; margin: 0 .5em .8em .8em; break-inside: avoid; }
-.news-body pre, .news-table { width: fit-content; max-width: min(36em, calc(100vw - 100px)); max-height: var(--tier); margin: 0; overflow: auto; writing-mode: horizontal-tb; }
+.news-figure.full { display: flex; justify-content: center; margin-bottom: 0; }
+.news-body pre, .news-table { width: fit-content; max-width: min(36em, calc(100vw - 100px)); max-height: calc(var(--tier) - 4px); margin: 0; overflow: auto; writing-mode: horizontal-tb; }
 .news-body pre { max-width: min(46em, calc(100vw - 100px)); padding: 12px 14px; border-radius: 3px; font-size: .78em; line-height: 1.6; tab-size: 2; }
 .news-body pre code { padding: 0; background: none; font-size: 1em; }
 .news-body pre[data-language="text"] { border: 1px solid var(--book-rule); background: var(--book-paper) !important; color: var(--book-ink) !important; }
