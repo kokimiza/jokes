@@ -1,19 +1,19 @@
 export const SC_BOOK = {
   title: "情報処理安全確保 実践テキスト",
   edition: "2026年度版",
-  revised: "2026-11-02",
+  revised: "2026-11-09",
   home: "/sc/",
 };
 
 export const SC_CHAPTERS = [
-  { number: 1, slug: "sc_1", title: "学習ガイド", subtitle: "試験と学び方の全体像", group: "はじめに" },
-  { number: 2, slug: "sc_2", title: "WebアプリとAPI認可", subtitle: "入力・コード・権限を読み解く", group: "技術と実践" },
-  { number: 3, slug: "sc_3", title: "認証・ID・鍵管理", subtitle: "誰が何を検証するのか", group: "技術と実践" },
-  { number: 4, slug: "sc_4", title: "ネットワークと通信", subtitle: "経路・設定・観測範囲を捉える", group: "技術と実践" },
-  { number: 5, slug: "sc_5", title: "インシデント対応", subtitle: "記録から事実と対処を導く", group: "技術と実践" },
-  { number: 6, slug: "sc_6", title: "管理・開発・事業継続", subtitle: "防御から復旧までを設計する", group: "技術と実践" },
-  { number: 7, slug: "sc_7", title: "横断知識と基礎", subtitle: "暗号・クラウド・法務をつなぐ", group: "知識をつなぐ" },
-  { number: 8, slug: "sc_8", title: "演習と記述答案", subtitle: "7つの演習と全70大問の索引", group: "知識をつなぐ" },
+  { number: 1, slug: "sc_1", title: "学習ガイド", subtitle: "試験と学び方の全体像", group: "はじめに", guide: "最初は試験の形式と第4節の学び方を読みます。出題一覧の略語は、これから学ぶ題材の見取り図です。今すべて覚える必要はありません。" },
+  { number: 2, slug: "sc_2", title: "WebアプリとAPI認可", subtitle: "入力・コード・権限を読み解く", group: "技術と実践", guide: "第2節で要求と認可、第4〜5節でブラウザー内の攻撃を押さえます。コードは、入力・照合条件・出力の三つを追えば読めます。開発工程とJavaの補足は二読目に戻っても構いません。" },
+  { number: 3, slug: "sc_3", title: "認証・ID・鍵管理", subtitle: "誰が何を検証するのか", group: "技術と実践", guide: "第2節のパスキーで『誰が鍵を持ち、誰が検証するか』を押さえてから、OAuthとSAMLへ進みます。細かな検証項目は、正常な流れを理解した後に確認します。" },
+  { number: 4, slug: "sc_4", title: "ネットワークと通信", subtitle: "経路・設定・観測範囲を捉える", group: "技術と実践", guide: "第2節でIP・ポートと通信の向き、第3節でログが見える位置を確かめます。その図にDNS、TLS、VPNを順に足します。ポート表は暗記を始める前に、通信例と対応させてください。" },
+  { number: 5, slug: "sc_5", title: "インシデント対応", subtitle: "記録から事実と対処を導く", group: "技術と実践", guide: "第2節で攻撃の流れ、第3節の3行のログで読み方をつかみます。次に第6節で時系列を作り、第8節で止める対象を選びます。イベントIDの数字の丸暗記は不要です。" },
+  { number: 6, slug: "sc_6", title: "管理・開発・事業継続", subtitle: "防御から復旧までを設計する", group: "技術と実践", guide: "第2節で『どれから修正するか』、第5節で『何が起きると困るか』、第6節で『いつまでにどこへ戻すか』を考えます。開発・委託の詳細は自分の苦手な題材から補えます。" },
+  { number: 7, slug: "sc_7", title: "横断知識と基礎", subtitle: "暗号・クラウド・法務をつなぐ", group: "知識をつなぐ", guide: "第2〜4節の暗号とクラウドを先に読み、事故対応に必要な法律は第6節で確認します。OS・メモリ・DBは、第2〜6章のコードやログでつまずいた箇所に合わせて使う補助教材です。" },
+  { number: 8, slug: "sc_8", title: "演習と記述答案", subtitle: "13の演習と全70大問の索引", group: "知識をつなぐ", guide: "第1節の答案例を読んでから、演習B・EのWeb、A・Lのログなど、学んだ分野の一題を選びます。全問を一度に解く必要はありません。解答を開く前に、本文の根拠を一つ書き出します。" },
 ] as const;
 
 export const chapterHref = (slug: string) => `/blog/${slug}/`;
