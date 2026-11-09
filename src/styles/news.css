@@ -28,6 +28,7 @@
 
 /* トップ記事のデカ見出し */
 .news-hero { margin-block-end: 22px; padding-block-end: 22px; border-block-end: 1px solid var(--book-rule); font-family: var(--book-sans); }
+.news-deck { display: none; }
 .news-kicker { margin: 0 0 0 10px; color: var(--book-accent); font-size: 15px; font-weight: 700; letter-spacing: .12em; }
 .news-hero h1 { margin: 0; font-size: clamp(40px, 10dvh, 100px); font-weight: 900; line-height: 1.14; letter-spacing: .02em; }
 .news-sub { inline-size: fit-content; margin: 0 14px 0 0; padding: 14px 8px; background: var(--book-ink); color: var(--book-paper); font-size: clamp(18px, 3dvh, 26px); font-weight: 700; letter-spacing: .08em; }
@@ -136,12 +137,71 @@
 .news-turn[data-turn="back"] { right: 18px; }
 .news-turn:disabled { visibility: hidden; }
 
-@media (max-width: 600px) {
-  .news .book-topbar { gap: 10px; padding: 0 12px; }
+/* 小さな画面は、縦書きの紙面を上から下へ読む。本文は各紙面の中で二段に組む。 */
+@media (max-width: 900px) {
+  .news .book-topbar { gap: 8px; padding: 0 12px; }
   .news .book-brand > span:last-child { display: none; }
-  .news-pages a { width: 26px; }
-  .news-paper { --frame: 92px; padding: 16px 18px; }
-  .news-turn { bottom: 12px; width: 40px; height: 40px; }
-  .news-turn[data-turn="forward"] { left: 10px; }
-  .news-turn[data-turn="back"] { right: 10px; }
+  .news-pages { margin-left: 0; }
+  .news-pages a { width: 28px; height: 40px; }
+  .news .view-switch a { padding: 7px 9px; }
+  .news .reading-progress span { margin-left: 0; }
+  .news-paper {
+    --sheet-height: clamp(420px, 72svh, 560px);
+    --tiers: 2;
+    --tier: calc((var(--sheet-height) - 24px) / 2);
+    padding: 16px clamp(14px, 4vw, 28px) 32px;
+    overflow: hidden auto;
+    overscroll-behavior-y: contain;
+    writing-mode: horizontal-tb;
+    scroll-padding: 16px;
+  }
+  .news-paper > * { max-width: 640px; margin-left: auto; margin-right: auto; }
+
+  .news-masthead { display: grid; grid-template-columns: 1fr auto; gap: 10px 12px; margin-bottom: 22px; padding-bottom: 12px; border-bottom: 3px double var(--book-rule); }
+  .news-title { grid-column: 1 / -1; padding: 12px 0 14px; border-block: 2px solid var(--book-rule); background: none; color: var(--book-ink); box-shadow: none; font-size: clamp(36px, 10vw, 54px); letter-spacing: .16em; text-indent: .16em; }
+  .news-dateline { font-size: 10px; line-height: 1.6; }
+  .news-dateline br { display: none; }
+  .news-folio { align-self: center; font-size: 14px; }
+  .news-index { grid-column: 1 / -1; margin: 0; font-size: 12px; }
+  .news-index > p { width: fit-content; margin: 0 0 8px; padding: 2px 8px; font-size: 11px; }
+  .news-index ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+  .news-index li { min-width: 0; border-bottom: 1px solid var(--book-border); }
+  .news-index a { display: block; padding: 7px 0; line-height: 1.6; overflow-wrap: anywhere; }
+
+  .news-hero { --headline-size: clamp(30px, 8.8vw, 46px); --headline-height: calc(var(--headline-size) * 8.5); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-rows: auto var(--headline-height); gap: 12px; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--book-rule); }
+  .news-kicker { grid-column: 1 / -1; margin: 0; font-size: 12px; letter-spacing: .12em; }
+  .news-deck { display: block; height: var(--headline-height); min-width: 0; margin: 0; padding-right: 10px; border-right: 1px solid var(--book-border); writing-mode: vertical-rl; font: 14px/1.8 var(--book-serif); text-align: justify; line-break: strict; overflow-wrap: anywhere; }
+  .news-hero h1 { justify-self: end; height: var(--headline-height); max-width: 100%; writing-mode: vertical-rl; font-size: var(--headline-size); line-height: 1.28; letter-spacing: .04em; overflow-wrap: anywhere; }
+  .news-sub { inline-size: auto; width: fit-content; max-width: 4.5em; margin: 0; padding: 10px 7px; writing-mode: vertical-rl; font-size: 16px; line-height: 1.6; letter-spacing: .04em; }
+
+  .news-graphics { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 28px; padding-bottom: 18px; border-bottom: 3px double var(--book-rule); }
+  .news-chart, .news-stats { width: 100%; min-width: 0; padding: 12px; border: 0; border-top: 1px solid var(--book-rule); }
+  .news-chart dl > div { grid-template-columns: minmax(0, 9.5em) minmax(0, 1fr); }
+  .news-stats dl { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .news-stats dl > div + div { padding-left: 8px; border-left: 1px solid var(--book-border); }
+  .news-stats b { font-size: 2em; }
+  .news-flow { padding: 12px; font-size: 12px; }
+  .news-flow figcaption { margin-bottom: 10px; }
+  .news-flow ol { align-items: stretch; gap: 16px; }
+  .news-flow li { flex: 1; padding: 8px 4px; writing-mode: vertical-rl; letter-spacing: .05em; text-align: center; }
+  .news-flow li + li::before { content: "›"; inset: 50% auto auto -14px; transform: translateY(-50%); line-height: 1; font-size: 18px; }
+
+  .news-body { counter-reset: news-sheet; font-size: calc(var(--reader-font-size) - .125rem); }
+  .news-page { position: relative; width: 100%; height: var(--sheet-height); margin: 32px 0 42px; writing-mode: vertical-rl; counter-increment: news-sheet; }
+  .news-page + .news-page { margin-block-start: 0; }
+  .news-page::before { content: "支援士新聞　／　" counter(news-sheet, decimal-leading-zero); position: absolute; top: -26px; right: 0; left: 0; padding-top: 4px; border-top: 1px solid var(--book-rule); color: var(--book-muted); font: 10px/1.5 var(--book-sans); letter-spacing: .08em; text-align: right; writing-mode: horizontal-tb; }
+  .news-page { overflow: visible; }
+  .news-body h2 { font-size: 1.3em; }
+  .news-body pre, .news-table { max-width: calc(100vw - 56px); }
+  .news-body pre { padding: 10px; }
+  .news-table th, .news-table td { padding-right: 8px; }
+  .news-paper .chapter-glossary { margin-top: 0; padding: 12px; }
+  .news-paper .chapter-glossary dl > div { padding: 12px 0; border-top: 1px solid var(--book-border); }
+  .news-paper .chapter-glossary dd { margin: 6px 0 0; }
+  .news-end { margin-top: 28px; padding-top: 18px; border-top: 3px double var(--book-rule); }
+  .news-next { width: 100%; padding: 16px; font-size: 20px; }
+  .news-next small { margin: 0 0 8px; }
+  .news-end > a:not(.news-next) { margin-top: 18px; }
+  .news-colophon { margin: 18px 0 0; }
+  .news .news-turn[data-js-only] { display: none !important; }
 }
