@@ -96,6 +96,12 @@ a { color: inherit; }
 .chapter-kicker { margin: 0 0 10px; font: 700 15px var(--book-serif); color: var(--book-accent); letter-spacing: .1em; }
 .chapter-header h1 { margin: 0 0 18px; font: 700 clamp(26px, 2.6vw, 34px)/1.45 var(--book-serif); letter-spacing: .02em; text-wrap: balance; }
 .chapter-description { margin: 0; padding-top: 18px; border-top: 1px solid var(--book-border); font-size: 15px; line-height: 1.9; color: var(--book-muted); }
+.chapter-guide { margin-top: 20px; padding: 12px 16px; border: 1px solid var(--book-border); border-radius: 6px; background: var(--book-note); font-size: 14px; line-height: 1.85; }
+.chapter-guide summary { cursor: pointer; color: var(--book-muted); font-weight: 700; }
+.chapter-guide[open] summary { color: var(--book-ink); }
+.chapter-guide p { margin: 10px 0 0; }
+.term-help { display: flex; align-items: baseline; gap: 8px; margin: -12px 0 28px; color: var(--book-muted); font-size: 12px; line-height: 1.8; }
+.term-help > span { display: inline-grid; place-items: center; flex: 0 0 17px; height: 17px; border: 1px solid var(--book-border); border-radius: 50%; font-size: 11px; }
 .resume-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 32px; padding: 10px 14px; background: var(--book-note); border-radius: 4px; font-size: 14px; }
 .resume-notice a { color: var(--book-link); }
 .resume-notice button { border: 0; background: none; font-size: 20px; color: var(--book-muted); padding: 0 6px; }
@@ -123,6 +129,34 @@ a { color: inherit; }
 .book-prose pre .copy-code:hover, .book-prose pre .copy-code:focus-visible { opacity: 1; }
 .book-prose img { max-width: 100%; height: auto; }
 .book-prose .katex-display { overflow-x: auto; overflow-y: hidden; }
+
+/* 用語の注釈。本文の色と行高を保ち、必要なときだけ開く。 */
+.book-prose .term-ref { display: inline; padding: 2px 0; border: 0; border-radius: 2px; background: none; color: inherit; font: inherit; letter-spacing: inherit; line-height: inherit; text-align: inherit; text-decoration: underline dotted; text-decoration-color: var(--book-muted); text-underline-offset: .22em; text-decoration-thickness: 1px; cursor: pointer; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.book-prose .term-ref:hover, .book-prose .term-ref[aria-expanded="true"] { color: var(--book-link); background: var(--book-note); text-decoration-color: var(--book-link); }
+.term-popover { display: none; position: fixed; inset: auto; margin: 0; width: 340px; max-width: calc(100vw - 24px); max-height: min(420px, calc(100dvh - 24px)); overflow: auto; padding: 16px 20px 20px; border: 1px solid var(--book-border); border-radius: 12px; background: var(--book-paper); color: var(--book-ink); box-shadow: 0 8px 24px #00000018, 0 24px 64px #00000012; font-family: var(--book-sans); font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; }
+.term-popover:popover-open { display: block; }
+.term-popover::backdrop { background: transparent; }
+.term-popover-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--book-muted); font-size: 11px; letter-spacing: .06em; }
+.term-close { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; margin: -8px -10px -4px 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--book-muted); font-size: 24px; line-height: 1; }
+.term-close:hover { background: var(--book-note); color: var(--book-ink); }
+.term-popover h2 { margin: 8px 0 0; font: 700 21px/1.5 var(--book-sans); }
+.term-full-name { margin: 2px 0 12px; color: var(--book-muted); font-size: 12px; }
+.term-definition { margin: 0 0 14px; }
+.term-chapter { color: var(--book-link); font-size: 13px; text-decoration: none; text-underline-offset: 4px; }
+.term-chapter:hover { text-decoration: underline; }
+.chapter-glossary { margin-top: 48px; padding: 0 20px; border: 1px solid var(--book-border); border-radius: 6px; font-size: 14px; }
+.chapter-glossary > summary { display: flex; align-items: center; gap: 12px; padding: 16px 0; cursor: pointer; font-weight: 700; list-style: none; }
+.chapter-glossary > summary::-webkit-details-marker { display: none; }
+.chapter-glossary > summary::before { content: "+"; color: var(--book-accent); font-weight: 400; font-size: 20px; }
+.chapter-glossary[open] > summary::before { content: "−"; }
+.chapter-glossary > summary > span { margin-left: auto; color: var(--book-muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
+.chapter-glossary dl { margin: 0; }
+.chapter-glossary dl > div { padding: 18px 0; border-top: 1px solid var(--book-border); scroll-margin-top: 85px; }
+.chapter-glossary dt { font-weight: 700; }
+.chapter-glossary dt small { display: block; margin-top: 2px; font-size: 12px; color: var(--book-muted); font-weight: 400; }
+.chapter-glossary dd { margin: 8px 0 0; line-height: 1.85; }
+.chapter-glossary dd a { color: var(--book-link); font-size: 12px; text-underline-offset: 3px; }
+.chapter-glossary :target { background: var(--book-note); box-shadow: 10px 0 var(--book-note), -10px 0 var(--book-note); }
 
 /* 表：罫線は上下の太線と行の細線だけ */
 .book-prose table { width: 100%; border-collapse: collapse; font-family: var(--book-sans); font-size: .84em; line-height: 1.75; letter-spacing: .01em; }
@@ -196,6 +230,8 @@ a { color: inherit; }
   .chapter-description { font-size: 14px; }
   .book-prose { font-size: calc(var(--reader-font-size) - .0625rem); line-height: 1.9; letter-spacing: .01em; }
   .book-prose pre { margin-inline: -16px; border-radius: 0; }
+  .term-popover { width: min(340px, calc(100vw - 24px)); padding: 16px 18px 18px; }
+  .term-close { width: 44px; height: 44px; flex-basis: 44px; margin-top: -10px; }
   .chapter-pagination span { font-size: 14px; }
   .cover-contents a { grid-template-columns: 4em 1fr; }
 }
@@ -217,6 +253,10 @@ a { color: inherit; }
   .book-prose pre span { color: #000 !important; }
   .book-prose a { text-decoration: none; }
   .book-prose details { break-inside: avoid; }
+  .term-popover, .term-help, .chapter-guide { display: none !important; }
+  .book-prose .term-ref { text-decoration: none; }
+  .chapter-glossary { font-size: 9pt; }
+  .chapter-glossary dl > div { break-inside: avoid; }
 }
 @media (min-width: 601px) {
   .book-prose td:first-child { white-space: nowrap; }
