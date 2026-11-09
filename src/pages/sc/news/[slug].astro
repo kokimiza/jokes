@@ -176,7 +176,7 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
       const answers = blocks.flatMap((block) => Array.from(block.matches("details") ? [block] : block.querySelectorAll("details"))) as HTMLDetailsElement[];
       answers.forEach((details, index) => { details.dataset.answer = String(index); });
       const range = document.createRange();
-      const splittable = "p, ul, ol, blockquote, details[open]";
+      const splittable = "p, ul, ol, blockquote, details[open], .details-cont";
 
       // A block overflows when some of its text was pushed into a tier below the page.
       function overflows(block: Element, limit: number) {
@@ -275,6 +275,9 @@ const weekday = "日月火水木金土"[new Date(Date.UTC(year, month - 1, day))
           if (parts) {
             over.replaceWith(parts[0]);
             queue.unshift(parts[1]);
+            // Splitting a nested list or answer can change its line breaks.
+            // Check the resulting box again before accepting this page.
+            if (overflows(parts[0], limit)) continue;
           } else if (over !== sheet.firstElementChild) {
             over.remove();
             queue.unshift(over);
