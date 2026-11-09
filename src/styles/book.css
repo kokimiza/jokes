@@ -56,6 +56,13 @@ a { color: inherit; }
 .book-topbar { height: 60px; position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 max(24px, calc((100vw - 1360px) / 2 + 24px)); border-bottom: 1px solid var(--book-border); background: var(--book-bg); }
 .book-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 1.3; white-space: nowrap; }
 .book-brand small { display: block; font-size: 12px; font-weight: 400; color: var(--book-muted); }
+.book-brand { min-width: 0; }
+.book-brand > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.view-switch { display: flex; flex: none; margin-left: auto; overflow: hidden; border: 1px solid var(--book-border); border-radius: 4px; background: var(--book-paper); font-size: 13px; }
+.view-switch a { padding: 6px 11px; color: var(--book-muted); text-decoration: none; white-space: nowrap; }
+.view-switch a + a { border-left: 1px solid var(--book-border); }
+.view-switch a:hover { color: var(--book-ink); }
+.view-switch a[aria-current="page"] { background: var(--book-ink); color: var(--book-paper); font-weight: 700; }
 .book-emblem { width: 30px; height: 30px; display: grid; place-items: center; color: #fff; background: var(--book-accent); border-radius: 3px; font: 700 16px var(--book-serif); }
 :root[data-reader-theme="dark"] .book-emblem { color: #1c1f23; }
 .reader-settings { position: relative; }
