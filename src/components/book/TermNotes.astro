@@ -1,0 +1,31 @@
+---
+import { BOOK_GLOSSARY } from "../../lib/book-glossary.mjs";
+import { chapterHref } from "../../lib/sc-book";
+
+interface Props { ids: string[] }
+const { ids } = Astro.props;
+const terms = ids.flatMap((id) => {
+  const term = BOOK_GLOSSARY.find((entry) => entry.id === id);
+  return term ? [term] : [];
+});
+---
+
+{terms.length > 0 && <>
+  <details class="chapter-glossary" id="chapter-glossary">
+    <summary>この章の用語をまとめて確認 <span>{terms.length}語</span></summary>
+    <dl>
+      {terms.map((term) => <div id={`glossary-${term.id}`} data-glossary-entry={term.id}>
+        <dt><span data-term-label>{term.aliases[0]}</span><small data-term-name>{term.name}</small></dt>
+        <dd data-term-definition>{term.definition}</dd>
+        <dd><a data-term-chapter href={chapterHref(`sc_${term.chapter}`)}>第{term.chapter}章で詳しく読む <span aria-hidden="true">→</span></a></dd>
+      </div>)}
+    </dl>
+  </details>
+  <section class="term-popover" id="term-popover" popover="auto" role="dialog" aria-labelledby="term-popover-title" aria-describedby="term-popover-definition">
+    <div class="term-popover-topline"><span>ことばの手引き</span><button type="button" class="term-close" aria-label="用語の説明を閉じる">×</button></div>
+    <h2 id="term-popover-title"></h2>
+    <p class="term-full-name" id="term-popover-name"></p>
+    <p class="term-definition" id="term-popover-definition"></p>
+    <a class="term-chapter" id="term-popover-chapter"></a>
+  </section>
+</>}
