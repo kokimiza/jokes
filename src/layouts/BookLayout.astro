@@ -52,6 +52,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://jocarium.pr
         <span class="book-emblem" aria-hidden="true">支</span>
         <span>情報処理安全確保支援士<small>科目Bテキスト {SC_BOOK.edition}</small></span>
       </a>
+      <nav class="view-switch" aria-label="表示形式">
+        <a href={chapter ? chapterHref(chapter.slug) : SC_BOOK.home} aria-current="page">本</a><a href={`/sc/news/${chapter?.slug ?? "sc_1"}/`}>新聞</a>
+      </nav>
       <div class="reader-actions" data-js-only>
         <details class="reader-settings">
           <summary aria-label="表示の設定">表示</summary>
