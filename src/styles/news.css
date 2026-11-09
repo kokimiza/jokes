@@ -102,6 +102,8 @@
 /* 縦の段に置く横書きの島：コード・表・文字の図。段の上に寄せ、下の余白へ本文を回り込ませる。 */
 .news-figure { float: inline-start; margin: 0 .5em .8em .8em; break-inside: avoid; }
 .news-figure.full { display: flex; justify-content: center; margin-bottom: 0; }
+/* 行が図をまたいでしまうブラウザーでは、図に一段を丸ごと与えて中央に置く。 */
+.figures-inline .news-figure { float: none; display: flex; justify-content: center; margin: 0 .6em; }
 .news-body pre, .news-table { width: fit-content; max-width: min(36em, calc(100vw - 100px)); max-height: calc(var(--tier) - 4px); margin: 0; overflow: auto; writing-mode: horizontal-tb; }
 .news-body pre { max-width: min(46em, calc(100vw - 100px)); padding: 12px 14px; border-radius: 3px; font-size: .78em; line-height: 1.6; tab-size: 2; }
 .news-body pre code { padding: 0; background: none; font-size: 1em; }
