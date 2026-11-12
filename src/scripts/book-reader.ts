@@ -22,7 +22,7 @@ const rawSettings = readStorage("sc-reader-settings") as Partial<Preferences> | 
 const preferences: Preferences = {
   size: ["small", "standard", "large"].includes(rawSettings?.size ?? "") ? rawSettings!.size! : "standard",
   font: ["sans", "serif"].includes(rawSettings?.font ?? "") ? rawSettings!.font! : "sans",
-  theme: ["paper", "light", "dark"].includes(rawSettings?.theme ?? "") ? rawSettings!.theme! : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "paper",
+  theme: ["paper", "light", "dark"].includes(rawSettings?.theme ?? "") ? rawSettings!.theme! : "paper",
 };
 const sizeValues: Record<string, string> = { small: "1rem", standard: "1.125rem", large: "1.25rem" };
 function applyPreferences() {
@@ -87,7 +87,7 @@ function updateResumeLink() {
   }
 }
 updateResumeLink();
-if (progress.last?.slug === current && !location.hash) {
+if (progress.last && current && progress.last.slug === current && !location.hash) {
   const previousSection = headings.find((heading) => heading.id === progress.last?.section);
   const notice = document.getElementById("resume-notice");
   const resume = document.getElementById("resume-section");
@@ -102,18 +102,18 @@ document.getElementById("dismiss-resume")?.addEventListener("click", () => {
   if (notice) notice.hidden = true;
 });
 
-let savedSection = progress.last?.slug === current ? progress.last.section : "";
+let savedSection = progress.last && current && progress.last.slug === current ? progress.last.section : "";
 let pendingFrame = false;
 function updateReadingPosition(persist = false) {
   if (!prose || !current) return;
   const start = prose.getBoundingClientRect().top + window.scrollY;
   const end = start + prose.offsetHeight - window.innerHeight * .6;
   const ratio = Math.max(0, Math.min(1, (window.scrollY - start + 110) / Math.max(1, end - start)));
-  const percent = Math.round(ratio * 100);
   const bar = document.getElementById("reading-progress-bar");
-  if (bar) bar.style.width = `${percent}%`;
+  if (bar) bar.style.transform = `scaleX(${ratio})`;
   let active: HTMLElement | undefined;
   for (const heading of headings) {
+    if (heading.closest("[hidden]")) continue;
     if (heading.getBoundingClientRect().top <= 160) active = heading;
     else break;
   }
@@ -154,13 +154,13 @@ prose?.querySelectorAll("table").forEach((table, index) => {
   region.className = "table-scroll";
   region.setAttribute("role", "region");
   region.setAttribute("aria-label", `表 ${index + 1}（横にスクロールできます）`);
-  table.before(region);
-  region.append(table);
+  table.parentNode!.insertBefore(region, table);
+  region.appendChild(table);
   tableRegions.push(region);
   const hint = document.createElement("p");
   hint.className = "table-hint";
   hint.textContent = "表は横にスクロールできます";
-  region.after(hint);
+  region.parentNode!.insertBefore(hint, region.nextSibling);
 });
 function updateTableOverflow() {
   for (const region of tableRegions) {
@@ -196,7 +196,7 @@ prose?.querySelectorAll("pre > code").forEach((code) => {
       announce("コードを選択しました。コピーのショートカットを使ってください。");
     }
   });
-  code.parentElement?.prepend(button);
+  code.parentElement?.insertBefore(button, code.parentElement.firstChild);
 });
 
 // Native details stay interactive; include closed answers when printing and restore afterwards.

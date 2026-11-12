@@ -55,7 +55,7 @@ if (popup && typeof popup.showPopover === "function") {
     button.type = "button";
     button.className = "term-ref";
     // Keep inline markup such as upright letters in the newspaper view.
-    button.append(...link.childNodes);
+    for (const child of Array.from(link.childNodes)) button.appendChild(child);
     button.dataset.bookTerm = link.dataset.bookTerm;
     button.setAttribute("aria-haspopup", "dialog");
     button.setAttribute("aria-controls", "term-popover");
