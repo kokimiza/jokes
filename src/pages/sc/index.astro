@@ -1,5 +1,6 @@
 ---
 import BookLayout from "../../layouts/BookLayout.astro";
+import StudyDesk from "../../components/book/StudyDesk.astro";
 import { SC_BOOK, SC_CHAPTERS, chapterHref } from "../../lib/sc-book";
 const frontmatter = {
   title: SC_BOOK.title,
@@ -9,6 +10,30 @@ const frontmatter = {
 ---
 
 <BookLayout frontmatter={frontmatter}>
+  <nav class="practice-paths" aria-label="学び方を選ぶ">
+    <a href="/blog/sc_8/?practice=1"><span>短く確かめる</span><strong>演習A〜M</strong><small>一つの論点を、頭の中で説明する</small><span class="path-action">第8章を開く</span></a>
+    <a href="/blog/sc_9/?practice=1"><span>組み合わせて解く</span><strong>総合演習25題</strong><small>本文の根拠から、答案を組み立てる</small><span class="path-action">第9章を開く</span></a>
+  </nav>
+  <StudyDesk />
+
+  <h2 id="chapter-map">目次</h2>
+  <p class="map-intro">迷ったら一問。つまずいた知識だけ、該当する章に戻る。</p>
+  <ol class="cover-contents">
+    {SC_CHAPTERS.map((chapter) => (
+      <li>
+        <a href={chapterHref(chapter.slug)} data-map-chapter={chapter.slug}>
+          <span class="cover-contents-number">第{chapter.number}章</span>
+          <span class="cover-contents-title">{chapter.title}</span>
+          <span class="cover-contents-sub">{chapter.subtitle}</span>
+          <span class="map-state" data-map-state>開く</span>
+        </a>
+      </li>
+    ))}
+  </ol>
+
+  <details class="cover-about">
+  <summary>教材について・2026年度の学習優先度</summary>
+  <p>{frontmatter.description}</p>
   <p>科目Bでは、構成図やコード、ログの根拠から、攻撃の成立条件と具体的な対処を答える力が問われる。この本は、2018〜2025年度の記述70問を手掛かりに、正常な処理、受信者の検証、攻撃、証拠、復旧の順で知識を整理した。SAML等のSSOから、ネットワーク、侵害調査、脆弱性管理、事業継続まで、設定例と処理の流れで学ぶ。</p>
 
   <h2>2026年度の学習優先度</h2>
@@ -20,21 +45,9 @@ const frontmatter = {
     <li><b>○</b>クラウド・CI・委託先、脆弱性の優先順位、OTとメールへの適用</li>
   </ul>
 
-  <h2>目次</h2>
-  <ol class="cover-contents">
-    {SC_CHAPTERS.map((chapter) => (
-      <li>
-        <a href={chapterHref(chapter.slug)}>
-          <span class="cover-contents-number">第{chapter.number}章</span>
-          <span class="cover-contents-title">{chapter.title}</span>
-          <span class="cover-contents-sub">{chapter.subtitle}</span>
-        </a>
-      </li>
-    ))}
-  </ol>
-
   <h2>使い方</h2>
-  <p>第1章で試験の形と知識の整理方法を確かめ、第2〜7章の解説と対応する過去問を一組で学ぶ。公式の解答例と採点講評を照らし合わせ、第8章の独自演習13題で、根拠から答案を作る練習をする。仕上げに、第9章の総合演習25題を大問の形で解く。解答例には理由と、本文から断定できる範囲も示した。</p>
+  <p>第1章で試験の形と知識の整理方法を確かめ、第2〜7章の解説と対応する過去問を一組で学ぶ。公式の解答例と採点講評を照らし合わせ、第8章の独自演習13題で、根拠から答案を作る練習をする。仕上げに、<a href={chapterHref("sc_9")}>第9章の総合演習25題</a>を大問の形で解く。解答例には理由と、本文から断定できる範囲も示した。</p>
   <p>本書の分析と演習は筆者が作ったもので、IPAの公式な解説や採点基準ではない。</p>
   <p class="cover-links"><a href="/sc/past-exam-map.csv">記述70問の一覧（CSV）</a><a href="/sc/source-manifest.csv">参照した公式資料（CSV）</a><a href="/projects/sc-texts/">この本について・出典</a></p>
+  </details>
 </BookLayout>
