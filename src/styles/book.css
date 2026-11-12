@@ -124,7 +124,7 @@ a { color: inherit; }
 .chapter-glossary :target { background: var(--book-tint); }
 .book-prose table { width: 100%; border-collapse: collapse; font-family: var(--book-sans); font-size: .86em; line-height: 1.8; font-variant-numeric: tabular-nums; }
 .book-prose thead th { border-bottom: 2px solid var(--book-rule); text-align: left; white-space: nowrap; font-size: 14px; }
-.book-prose th, .book-prose td { padding: var(--space-sm); border-bottom: 1px solid var(--book-border); vertical-align: top; }
+.book-prose th, .book-prose td { padding: var(--space-sm); border-bottom: 1px solid var(--book-border); vertical-align: top; overflow-wrap: break-word; }
 .book-prose th:first-child, .book-prose td:first-child { padding-left: var(--space-xs); }
 .book-prose .table-scroll { margin: var(--space-lg) 0; overflow-x: auto; border-block: 1px solid var(--book-rule); scrollbar-width: thin; }
 .book-prose .table-scroll table { min-width: 480px; }
