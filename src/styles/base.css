@@ -1,0 +1,15 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html { scroll-padding-top: 160px; color-scheme: light; }
+html { scrollbar-color: var(--book-rule) var(--book-bg); }
+::selection { color: var(--book-ink); background: var(--book-tint); }
+body { margin: 0; font-variant-numeric: tabular-nums; }
+h1, h2, h3, h4 { overflow-wrap: break-word; min-width: 0; }
+:focus-visible { outline: 2px solid var(--book-link); outline-offset: 4px; }
+[hidden] { display: none !important; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button, summary { cursor: pointer; }
+button:active, a:active { opacity: .8; }
+button:disabled { opacity: .55; cursor: not-allowed; background: var(--book-note); color: var(--book-muted); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }

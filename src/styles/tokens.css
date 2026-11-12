@@ -1,0 +1,63 @@
+:root {
+  --reader-font-size: 1.125rem;
+  --book-sans: "BIZ UDPGothic", "Yu Gothic", "Hiragino Sans", Meiryo, sans-serif;
+  --book-serif: "BIZ UDPMincho", "Yu Mincho", "Hiragino Mincho ProN", serif;
+  --book-mono: "Cascadia Code", Consolas, monospace;
+  --book-bg: #eeeee8;
+  --book-paper: #fafaf5;
+  --book-ink: #223747;
+  --book-muted: #5a696c;
+  --book-accent: #274e68;
+  --book-link: #20577a;
+  --book-tint: #e3ecec;
+  --book-note: #f0f2ec;
+  --book-border: #d5dcd6;
+  --book-rule: #647a7d;
+  --book-on-accent: #f7faf7;
+  --book-error: #9a3c2d;
+  --book-code-border: #637581;
+  --book-code-bg: #304251;
+  --book-code-ink: #e4ecf1;
+  --book-transparent: transparent;
+  --book-light-bg: #f0f4f4;
+  --book-light-paper: #fcfdfb;
+  --book-dark-bg: #14212b;
+  --book-dark-paper: #1b2c37;
+  --book-dark-ink: #e2e9e6;
+  --book-dark-muted: #a6b8bb;
+  --book-dark-accent: #a2c7dc;
+  --book-dark-link: #acd4e9;
+  --book-dark-tint: #304854;
+  --book-dark-note: #243844;
+  --book-dark-border: #455b64;
+  --book-dark-rule: #8fa6ac;
+  --book-dark-error: #f2aa94;
+  --book-print-paper: #fafaf7;
+  --book-print-ink: #1e2a30;
+  --font-body: var(--book-sans);
+  --font-display: var(--book-sans);
+  --font-outlier: var(--book-mono);
+  --color-paper: var(--book-bg);
+  --color-ink: var(--book-ink);
+  --color-focus: var(--book-link);
+  --color-muted: var(--book-muted);
+  --color-accent: var(--book-accent);
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --container: 1440px;
+  --radius-control: 4px;
+  --text-md: 1rem;
+  --text-sm: .875rem;
+}
+:root[data-reader-theme="light"] { --book-bg: var(--book-light-bg); --book-paper: var(--book-light-paper); }
+:root[data-reader-theme="dark"] {
+  --book-bg: var(--book-dark-bg); --book-paper: var(--book-dark-paper); --book-ink: var(--book-dark-ink);
+  --book-muted: var(--book-dark-muted); --book-accent: var(--book-dark-accent); --book-link: var(--book-dark-link);
+  --book-tint: var(--book-dark-tint); --book-note: var(--book-dark-note); --book-border: var(--book-dark-border);
+  --book-rule: var(--book-dark-rule); --book-on-accent: var(--book-dark-bg); --book-error: var(--book-dark-error);
+  color-scheme: dark;
+}
