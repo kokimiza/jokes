@@ -1,0 +1,40 @@
+---
+import { BOOK_GLOSSARY } from "../../lib/book-glossary.mjs";
+interface Props { ids: string[]; chapter: number; }
+const { ids, chapter } = Astro.props;
+const preferred: Record<number, string[]> = {
+  1: ["cbt", "sc"], 2: ["authorization", "xss", "csrf", "ssrf", "cors", "csp", "idor", "jwt"],
+  3: ["oauth", "oidc", "pkce", "passkey", "mfa", "saml", "rp"],
+  4: ["termination", "tls", "spf", "dmarc", "ztna", "ids", "ips", "dnssec"],
+  5: ["edr", "siem", "ioc", "lsass", "rdp", "smb"],
+  6: ["cvss", "epss", "kev", "sbom", "bia", "rto", "rpo"],
+  7: ["hash", "mac", "signature", "iam", "saas", "iaas"],
+};
+const terms = (preferred[chapter] ?? ids).flatMap((id) => {
+  const term = BOOK_GLOSSARY.find((item) => item.id === id && ids.includes(id));
+  return term ? [term] : [];
+});
+const questions: Record<string, string> = {
+  authorization: "ログイン済みなら、他人の注文を見てもよい？",
+  xss: "不正なスクリプトは、どこで実行される？",
+  csrf: "誰のブラウザーが、意図しない要求を送る？",
+  ssrf: "意図しない宛先へ接続するのは、誰？",
+  cors: "別オリジンの応答を読める条件を、誰が伝える？",
+  csp: "実行してよいスクリプトを、誰が誰に指定する？",
+  oauth: "パスワードを渡さず、何の権限を許可する？",
+  tls: "通信の何を守り、相手の何を確認する？",
+  termination: "暗号化された通信が、平文になるのはどこ？",
+  rto: "いつまでに業務を戻すか、その目標は？",
+  rpo: "どの時点のデータまで戻すか、その目標は？",
+};
+---
+
+{terms.length > 0 && chapter < 8 && <section class="recall-deck" id="recall-deck" data-recall-chapter={`sc_${chapter}`} aria-labelledby="recall-title">
+  <div class="recall-top"><h2 id="recall-title">見ないで、説明できる？</h2><span data-recall-position data-js-only>1 / {terms.length}</span></div>
+  {terms.map((term) => <div class="recall-card" id={`recall-term-${term.id}`} data-recall-card data-recall-title={term.aliases[0]}>
+    <h3>{term.aliases[0]}</h3>
+    <p class="recall-question">{questions[term.id] ?? "どんな仕組み・役割か、頭の中で説明する。"}</p>
+    <details class="recall-answer"><summary>答えを確かめる</summary><p>{term.definition}</p><a href={`#glossary-${term.id}`}>本文の用語集で確認</a></details>
+  </div>)}
+  <div class="recall-actions" data-js-only><button type="button" id="recall-previous">前の問い</button><button type="button" id="recall-next">次の問い</button></div>
+</section>}
